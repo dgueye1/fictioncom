@@ -20,7 +20,7 @@ export function createBillingServer({env=process.env,request=fetch}={}){
  }
  async function database(path,{method='GET',body,headers={}}={}){
   const r=await request(SUPABASE_URL+'/rest/v1/'+path,{method,headers:{apikey:serviceKey,Authorization:'Bearer '+serviceKey,'Content-Type':'application/json',...headers},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(15000)});
-  if(!r.ok)throw Error('Membership update unavailable.');return r.status===204?null:await r.json();
+  if(!r.ok)throw Error('Membership update unavailable.');return r.status===204||headers.Prefer?.includes('return=minimal')?null:await r.json();
  }
  async function identity(req){
   const token=req.headers.authorization;if(!/^Bearer \S+$/.test(token||''))throw Error('Sign in again.');
