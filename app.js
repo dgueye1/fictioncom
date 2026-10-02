@@ -13,6 +13,8 @@ import {createEnhancements} from './enhancements.js';
 import {getDraft,saveDraft,deleteDraft,uploadWithProgress} from './drafts.js';
 import { storyGroups, rememberStoryGroup, storyGroupOpened } from './story-order.js';
 const db=createClient(SUPABASE_URL,SUPABASE_KEY);
+// Notify the owner once per visit session; navigation does not create more alerts.
+try{const visitKey='fictioncom-visit-alert';if(Date.now()-Number(localStorage.getItem(visitKey)||0)>=1800000){fetch('/api/alerts/visit',{method:'POST',keepalive:true}).then(r=>{if(r.ok)localStorage.setItem(visitKey,String(Date.now()));}).catch(()=>{});}}catch{}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let user=null,me=null,view=new URLSearchParams(location.search).has('chat')?'messages':'feed',feed=[],busy=false,toastTimer,loadId=0;

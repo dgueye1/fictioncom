@@ -1,12 +1,17 @@
 import {Buffer} from 'node:buffer';
 import {createBillingServer} from './billing-server.mjs';
 import {catalogResponse} from './catalog-server.mjs';
+import {createEmailAlerts} from './email-alerts.mjs';
 
 const handlers=new WeakMap();
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export default {
+ async scheduled(event,env){
+  await fetch('https://fictioncom.pages.dev/api/alerts/drain',{method:'POST',headers:{Authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY}});
+ },
  async fetch(request,env){
   const url=new URL(request.url);
+  if(url.pathname.startsWith('/api/alerts/'))return createEmailAlerts(env).handle(request);
   if(url.pathname.startsWith('/api/billing/')){
    let handler=handlers.get(env);if(!handler){handler=createBillingServer({env});handlers.set(env,handler);}
    const req={method:request.method,headers:Object.fromEntries(request.headers),async *[Symbol.asyncIterator](){if(!request.body)return;const reader=request.body.getReader();try{while(true){const {value,done}=await reader.read();if(done)break;yield Buffer.from(value);}}finally{reader.releaseLock();}}};
