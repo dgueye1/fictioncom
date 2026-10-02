@@ -73,7 +73,7 @@ export function createBillingServer({env=process.env,request=fetch}={}){
    }
    if(url.pathname==='/api/billing/portal'){
     if(!member.stripe_customer_id)return reply(409,{error:'No subscription to manage yet.'});
-    const session=await stripe('billing_portal/sessions',{customer:member.stripe_customer_id,return_url:origin+'/?billing=return'});
+    const session=await stripe('billing_portal/sessions',{customer:member.stripe_customer_id,return_url:origin+'/?billing=return',...(env.STRIPE_PORTAL_CONFIGURATION_ID?{configuration:env.STRIPE_PORTAL_CONFIGURATION_ID}:{})});
     return reply(200,{url:session.url});
    }
    if(url.pathname!=='/api/billing/checkout')return reply(404,{error:'Not found.'});
