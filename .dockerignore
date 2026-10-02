@@ -1,0 +1,6 @@
+.env*
+*.sql
+*.ps1
+*.md
+node_modules
+.git

@@ -1,0 +1,1 @@
+{"name":"animecom-beta","private":true,"type":"module","engines":{"node":">=22"},"scripts":{"start":"node serve.mjs","check":"node --check app.js && node --check community.js && node --check beta-tools.js && node --check serve.mjs && node --check messages.js && node --check enhancements.js && node --check maintenance.mjs"}}
