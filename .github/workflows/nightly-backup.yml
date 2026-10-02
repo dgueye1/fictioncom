@@ -1,0 +1,50 @@
+name: FictionCom encrypted nightly backup
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 7 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: fictioncom-nightly-backup
+  cancel-in-progress: false
+jobs:
+  backup:
+    if: github.repository == 'dgueye1/fictioncom'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install official PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-common ca-certificates curl
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-18
+          echo '/usr/lib/postgresql/18/bin' >> "$GITHUB_PATH"
+      - name: Create encrypted database and media backup
+        env:
+          PGHOST: aws-0-us-east-1.pooler.supabase.com
+          PGPORT: '5432'
+          PGUSER: postgres.jafxiawuiqkjxrsmqrrt
+          PGDATABASE: postgres
+          PGPASSWORD: ${{ secrets.FICTIONCOM_BACKUP_DB_PASSWORD }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.FICTIONCOM_BACKUP_SERVICE_KEY }}
+        run: node backup-tools/nightly-backup.mjs
+      - name: Save encrypted recovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fictioncom-recovery-${{ github.run_id }}
+          path: encrypted-backup/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Remove runner working copy
+        if: always()
+        run: rm -rf -- encrypted-backup
