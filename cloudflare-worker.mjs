@@ -3,16 +3,19 @@ import {createBillingServer} from './billing-server.mjs';
 import {catalogResponse} from './catalog-server.mjs';
 import {createEmailAlerts} from './email-alerts.mjs';
 import {launchAccess} from './launch-access.mjs';
+import {createOperations} from './operations-worker.mjs';
 
 const handlers=new WeakMap();
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export default {
  async scheduled(event,env){
   await fetch('https://fictioncom.pages.dev/api/alerts/drain',{method:'POST',headers:{Authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY}});
+  if(new Date(event.scheduledTime).getUTCMinutes()===0)await fetch('https://fictioncom.pages.dev/api/operations/run',{method:'POST',headers:{Authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY}});
  },
  async fetch(request,env){
   const url=new URL(request.url);
   if(url.pathname==='/api/moderator/launch-checklist')return launchAccess(request);
+  if(url.pathname.startsWith('/api/operations/'))return createOperations(env).handle(request);
   if(url.pathname.startsWith('/api/alerts/'))return createEmailAlerts(env).handle(request);
   if(url.pathname.startsWith('/api/billing/')){
    let handler=handlers.get(env);if(!handler){handler=createBillingServer({env});handlers.set(env,handler);}

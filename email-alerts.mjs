@@ -13,8 +13,8 @@ export function createEmailAlerts(env,request=fetch){
   if(!service||!env.BREVO_API_KEY)return {ready:false,sent:0};
   const rows=await database('rpc/claim_owner_email_alerts','POST',{});let sent=0;
   for(const row of rows){
-   const label={visit:'A new visit to FictionCom',signup:'A new FictionCom account was registered',support:'A new support request',feedback:'New FictionCom feedback'}[row.kind];
-   const body=label+'\n\nTime: '+row.created_at+'\n'+(row.kind==='visit'?'This is a new 30-minute visit session. No visitor IP or browsing history is included.':row.kind==='signup'?'Account ID: '+row.subject_id:'Request ID: '+row.subject_id+'\nOpen your moderator dashboard → Support inbox to read and reply.')+'\n\nhttps://fictioncom.pages.dev/';
+   const label={visit:'A new visit to FictionCom',signup:'A new FictionCom account was registered',support:'A new support request',feedback:'New FictionCom feedback',usage:'FictionCom is approaching its free storage limits'}[row.kind];
+   const body=label+'\n\nTime: '+row.created_at+'\n'+(row.kind==='usage'?'Database: '+Math.round(Number(row.metrics?.database_bytes||0)/1000000)+' MB of 500 MB. Uploaded files: '+Math.round(Number(row.metrics?.storage_bytes||0)/1000000)+' MB of 1000 MB. Review usage in Supabase.':row.kind==='visit'?'This is a new 30-minute visit session. No visitor IP or browsing history is included.':row.kind==='signup'?'Account ID: '+row.subject_id:'Request ID: '+row.subject_id+'\nOpen your moderator dashboard → Support inbox to read and reply.')+'\n\nhttps://fictioncom.pages.dev/';
    try{
     const response=await request('https://api.brevo.com/v3/smtp/email',{method:'POST',headers:{'api-key':env.BREVO_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({sender:{name:'FictionCom',email:'doudousygueye12@gmail.com'},to:[{email:recipient}],subject:label,textContent:body,headers:{'X-Mailin-custom':'fictioncom-alert:'+row.id}}),signal:AbortSignal.timeout(15000)});
     if(!response.ok)throw Error('Email delivery deferred');
