@@ -1,3 +1,4 @@
+import {createBilling} from './billing.js';
 import {createMessages} from './messages.js';
 import {validateMedia,configureCaptureButtons} from './media-validation.js';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
@@ -16,7 +17,8 @@ let user=null,me=null,view=new URLSearchParams(location.search).has('chat')?'mes
 const revealed=new Set();
 const postBodies=new Map();
 let engagementReady=false;
-const community=createCommunity({getBeta:()=>beta,db,$,esc,result,modal,close,toast,fail,guarded,requireProfile,getUser:()=>user,getMe:()=>me,getEnhancements:()=>enhancements,isEnhanced:()=>engagementReady,showProfile,card,bindCards,signed,avatar,recordView,isRevealed:id=>revealed.has(id),openFeed:(kind,series=null)=>{view=kind;selectedSeries=series;mainCatalog.reset();if(series)$('#series-filter').value=series.label;load();}});
+const billing=createBilling({db,$,modal,esc,toast,getUser:()=>user,auth,refresh:load});
+const community=createCommunity({getBilling:()=>billing,getBeta:()=>beta,db,$,esc,result,modal,close,toast,fail,guarded,requireProfile,getUser:()=>user,getMe:()=>me,getEnhancements:()=>enhancements,isEnhanced:()=>engagementReady,showProfile,card,bindCards,signed,avatar,recordView,isRevealed:id=>revealed.has(id),openFeed:(kind,series=null)=>{view=kind;selectedSeries=series;mainCatalog.reset();if(series)$('#series-filter').value=series.label;load();}});
 const beta=createBetaTools({db,$,esc,result,modal,close,toast,guarded,fail,requireProfile,getUser:()=>user,moderation:(...args)=>community.moderation(...args),refresh:load});
 const enhancements=createEnhancements({db,$,esc,result,modal,close,toast,fail,guarded,requireProfile,getUser:()=>user,getMe:()=>me,readMe,refresh:refreshCurrent,showProfile,openPost:id=>community.openPost(id),people:()=>community.people(),spoiler:p=>community.spoiler(p)});
 if(new URLSearchParams(location.search).has('chat'))document.body.classList.add('chat-window');
@@ -35,12 +37,12 @@ function close(){stopStoryPlayback();storyEpoch++;storySequence=[]; $('#modal').
 function fail(e){console.error(e);toast(e.message||'Something went wrong. Please try again.');}
 async function result(promise){const r=await promise;if(r.error)throw r.error;return r.data;}
 function guarded(fn){return async e=>{e?.preventDefault();if(busy)return;busy=true;const buttons=$('#modal-body').querySelectorAll('button');buttons.forEach(b=>b.disabled=true);try{await fn(e);}catch(e){fail(e);}finally{busy=false;buttons.forEach(b=>b.disabled=false);}};}
-function requireProfile(){if(me?.account_suspended){toast('Your account is suspended. Contact the moderator from account settings.');return false;}if(!user){auth();return false;}if(!me){profileEditor();return false;}return true;}
+function requireProfile(){if(me?.account_suspended){toast('Your account is suspended. Contact the moderator from account settings.');return false;}if(!user){auth();return false;}if(!me){profileEditor();return false;}return billing.gate();}
 async function readMe(){messages.badge().catch(console.error);if(!engagementReady){const ready=await db.rpc('engagement_ready');engagementReady=!ready.error&&ready.data===true;}me=user?await result(db.from('profiles').select('*').eq('id',user.id).maybeSingle()):null;$('#account').textContent=me?me.display_name:user?'Set up profile':'Sign in';$('.create-row p').textContent=user?'Share a post or add to your story.':'Browse freely. Sign in to join the conversation.';try{await community.refresh();if(engagementReady)await enhancements.loadPins();}catch(e){console.error(e);}}
 async function signed(path){if(!path)return null;try{return (await result(db.storage.from('community-media').createSignedUrl(path,60))).signedUrl;}catch{return null;}}
 async function avatar(p){const url=await signed(p?.avatar_path);return url?`<img class="avatar" alt="${esc(p.display_name)} profile picture" src="${esc(url)}">`:`<span class="avatar">${esc((p?.display_name||'?')[0].toUpperCase())}</span>`;}
 function empty(title,body){return `<div class="empty"><h2>${esc(title)}</h2><p>${esc(body)}</p></div>`;}
-async function load(){messages.stop();activeProfile=null;const request=++loadId;feedPage=0;feed=[];
+async function load(){messages.stop();activeProfile=null;const request=++loadId;feedPage=0;feed=[];await billing.status();await billing.returned();if(billing.blocked()&&view!=='profile'){stopStoryPlayback();$('#story-strip').hidden=true;$('.create-row').hidden=true;$('.community-tools').hidden=true;$('#filters').hidden=true;$('#intro').hidden=true;$('#view-title').textContent='FictionCom';$('#content').innerHTML=billing.render();$('#feed-membership').onclick=()=>billing.open().catch(fail);return;}
  $('#story-strip').hidden=['profile','messages'].includes(view);$('.create-row').hidden=['profile','messages'].includes(view);$('.community-tools').hidden=view==='messages';if(!['profile','messages'].includes(view))renderStoryStrip(request);$('#view-title').textContent=names[view];$('#intro').hidden=['profile','feed','messages'].includes(view);$('#filters').hidden=['profile','feed','messages'].includes(view);$('main').classList.toggle('home-feed',view==='feed');document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
  if(selectedSeries&&catalogMedium()&&selectedSeries.medium!==catalogMedium()){selectedSeries=null;mainCatalog.reset();}
  $('#series-page').hidden=!selectedSeries;$('#series-filter').placeholder=view==='episodes'?'Search anime…':view==='chapters'?'Search manga…':'Search anime or manga…';
