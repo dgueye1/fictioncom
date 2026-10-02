@@ -38,7 +38,7 @@ export function createBillingServer({env=process.env,request=fetch}={}){
   const items=sub.items?.data||[],item=items[0];
   if(items.length!==1||item.price?.id!==priceId)return;
   const until=item.current_period_end||sub.current_period_end;
-  await database('memberships?user_id=eq.'+member.user_id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:{stripe_subscription_id:sub.id,subscription_status:sub.status,paid_until:until?new Date(until*1000).toISOString():null,cancel_at_period_end:sub.cancel_at_period_end===true,updated_at:new Date().toISOString()}});
+  await database('memberships?user_id=eq.'+member.user_id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:{stripe_subscription_id:sub.id,subscription_status:sub.status,...(sub.trial_start&&sub.trial_end?{trial_started_at:new Date(sub.trial_start*1000).toISOString(),trial_ends_at:new Date(sub.trial_end*1000).toISOString()}:{}),paid_until:until?new Date(until*1000).toISOString():null,cancel_at_period_end:sub.cancel_at_period_end===true,updated_at:new Date().toISOString()}});
  }
  return async function billing(req,res,url){
   if(!url.pathname.startsWith('/api/billing/'))return false;
@@ -60,11 +60,16 @@ export function createBillingServer({env=process.env,request=fetch}={}){
    if(now-previous<2000)return reply(429,{error:'Please wait a moment.'});budget.set(u.id,now);
    if(budget.size>1000)for(const [id,t] of budget)if(now-t>60000)budget.delete(id);
    let member=(await database('memberships?user_id=eq.'+u.id+'&select=*'))[0];
-   if(!member)return reply(409,{error:'Start your free trial first.'});
+   if(!member&&url.pathname==='/api/billing/checkout'){await database('memberships',{method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:{user_id:u.id,trial_started_at:null,trial_ends_at:null}});member=(await database('memberships?user_id=eq.'+u.id+'&select=*'))[0];}
+   if(!member)return reply(409,{error:'No membership to manage yet.'});
    if(url.pathname==='/api/billing/refresh'){
     if(member.stripe_subscription_id)await sync(member.stripe_subscription_id);
     else if(member.stripe_customer_id){const subscriptions=await stripe('subscriptions?customer='+encodeURIComponent(member.stripe_customer_id)+'&status=all&limit=10');const sub=subscriptions.data.find(s=>s.metadata?.fictioncom_user_id===u.id&&s.items?.data?.[0]?.price?.id===priceId);if(sub)await sync(sub.id);}
     return reply(200,{ok:true});
+   }
+   if(url.pathname==='/api/billing/cancel'){
+    if(!member.stripe_subscription_id)return reply(409,{error:'No subscription to cancel.'});
+    await stripe('subscriptions/'+encodeURIComponent(member.stripe_subscription_id),{cancel_at_period_end:'true'});await sync(member.stripe_subscription_id);return reply(200,{ok:true});
    }
    if(url.pathname==='/api/billing/portal'){
     if(!member.stripe_customer_id)return reply(409,{error:'No subscription to manage yet.'});
@@ -72,13 +77,16 @@ export function createBillingServer({env=process.env,request=fetch}={}){
     return reply(200,{url:session.url});
    }
    if(url.pathname!=='/api/billing/checkout')return reply(404,{error:'Not found.'});
-   if(Date.parse(member.trial_ends_at)>now)return reply(409,{error:'Your trial is still free. Subscribe when it ends.'});
+   
    const price=await stripe('prices/'+encodeURIComponent(priceId));
    if(!price.active||price.unit_amount!==500||price.currency!=='usd'||price.recurring?.interval!=='month'||price.recurring?.interval_count!==1||Boolean(price.livemode)!==(mode==='live'))throw Error('Subscription price is not configured correctly.');
    if(!member.stripe_customer_id){const customer=await stripe('customers',{'metadata[fictioncom_user_id]':u.id},'fictioncom-customer-'+u.id);await database('memberships?user_id=eq.'+u.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:{stripe_customer_id:customer.id}});member={...member,stripe_customer_id:customer.id};}
    const subscriptions=await stripe('subscriptions?customer='+encodeURIComponent(member.stripe_customer_id)+'&status=all&limit=10');
    if(subscriptions.data.some(s=>['active','past_due','unpaid','incomplete','trialing','paused'].includes(s.status)))return reply(409,{error:'You already have a subscription. Use Manage subscription.'});
-   const session=await stripe('checkout/sessions',{mode:'subscription',customer:member.stripe_customer_id,client_reference_id:u.id,'line_items[0][price]':priceId,'line_items[0][quantity]':'1','subscription_data[metadata][fictioncom_user_id]':u.id,success_url:origin+'/?billing=success',cancel_url:origin+'/?billing=cancel'},'fictioncom-checkout-'+u.id+'-'+Math.floor(now/1800000));
+   const pending=await stripe('checkout/sessions?customer='+encodeURIComponent(member.stripe_customer_id)+'&status=open&limit=100');
+   const existing=pending.data.find(s=>s.mode==='subscription'&&s.client_reference_id===u.id);if(existing)return reply(200,{url:existing.url});
+   const trialParams=member.trial_started_at?{}:{'subscription_data[trial_period_days]':'7','subscription_data[trial_settings][end_behavior][missing_payment_method]':'cancel'};
+   const session=await stripe('checkout/sessions',{...trialParams,payment_method_collection:'always','payment_method_types[0]':'card',mode:'subscription',customer:member.stripe_customer_id,client_reference_id:u.id,'line_items[0][price]':priceId,'line_items[0][quantity]':'1','subscription_data[metadata][fictioncom_user_id]':u.id,success_url:origin+'/?billing=success',cancel_url:origin+'/?billing=cancel'},'fictioncom-checkout-'+u.id+'-'+Math.floor(now/1800000));
    return reply(200,{url:session.url});
   }catch(e){console.warn(JSON.stringify({event:'billing_request_failed',at:new Date().toISOString()}));return reply(400,{error:['Sign in again.','Account unavailable.','Request too large.','Subscription price is not configured correctly.'].includes(e.message)?e.message:'Billing is temporarily unavailable. Please try again.'});}
  };
