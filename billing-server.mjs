@@ -8,8 +8,8 @@ export function verifyStripeSignature(raw,signature,secret,now=Date.now()){
  return parts.filter(p=>p.startsWith('v1=')).some(p=>{const s=p.slice(3);return /^[a-f0-9]{64}$/i.test(s)&&timingSafeEqual(expected,Buffer.from(s,'hex'));});
 }
 export function createBillingServer({env=process.env,request=fetch}={}){
- const enabled=env.BILLING_ENABLED==='true',key=env.STRIPE_SECRET_KEY,priceId=env.STRIPE_PRICE_ID,secret=env.STRIPE_WEBHOOK_SECRET,serviceKey=env.SUPABASE_SERVICE_ROLE_KEY;
- const origin=env.APP_ORIGIN,ready=Boolean(enabled&&key&&priceId&&secret&&serviceKey&&origin);
+ const enabled=false,key=env.STRIPE_SECRET_KEY,priceId=env.STRIPE_PRICE_ID,secret=env.STRIPE_WEBHOOK_SECRET,serviceKey=env.SUPABASE_SERVICE_ROLE_KEY;
+ const origin=env.APP_ORIGIN,ready=Boolean(key&&priceId&&secret&&serviceKey&&origin);
  const mode=/^(sk|rk)_live_/.test(key||'')?'live':'test',budget=new Map();
  async function stripe(path,params=null,idempotency=null,method=null){
   const headers={Authorization:'Bearer '+key,'Stripe-Version':'2025-06-30.basil'};
@@ -48,7 +48,8 @@ export function createBillingServer({env=process.env,request=fetch}={}){
  return async function billing(req,res,url){
   if(!url.pathname.startsWith('/api/billing/'))return false;
   function reply(status,data){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));return true;}
-  if(url.pathname==='/api/billing/config'&&req.method==='GET')return reply(200,{enabled,ready,mode,monthly_amount:500,currency:'usd',trial_days:7});
+  if(url.pathname==='/api/billing/config'&&req.method==='GET')return reply(200,{enabled,ready,mode,monthly_amount:0,currency:'usd',trial_days:0});
+  if(url.pathname==='/api/billing/checkout')return reply(403,{error:'FictionCom is free. No payment or card is required.'});
   if(!ready)return reply(503,{error:'Subscriptions are not available yet. No payment has been taken.'});
   let lease=null,leaseUser=null;
   try{
