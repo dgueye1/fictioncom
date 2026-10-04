@@ -76,7 +76,7 @@ async function load(){messages.stop();activeProfile=null;const request=++loadId;
  $('#series-page').hidden=!selectedSeries;$('#series-filter').placeholder=view==='episodes'?'Search anime…':view==='chapters'?'Search manga…':'Search anime or manga…';
  $('#content').innerHTML=empty('Loading…','Finding the latest conversations.');
  if(view==='messages'){await messages.inbox();return;}
- if(view==='profile'){if(!user||!me){requireProfile();$('#content').innerHTML=empty('Make yourself at home','Sign in to create your profile.');return;}await showProfile(user.id,request);return;}
+ if(view==='profile'){if(!user){$('#content').innerHTML='<section class="empty"><h2>Make yourself at home</h2><p>Create your profile, choose your favorite anime and manga, and connect with other fans. Browse freely; an account is required to post, react, follow or chat.</p><div class="form-actions"><button id="guest-create-profile" class="primary">Create account</button><button id="guest-profile-signin">Sign in</button></div></section>';$('#guest-create-profile').onclick=()=>auth('signup');$('#guest-profile-signin').onclick=()=>auth();return;}if(!me){profileEditor();$('#content').innerHTML=empty('Make yourself at home','Set up your profile to join the conversation.');return;}await showProfile(user.id,request);return;}
  await loadFeedPage(request,true);
 }
 async function loadFeedPage(request,reset=false){try{

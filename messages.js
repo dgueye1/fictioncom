@@ -13,7 +13,12 @@ export function createMessages({openShared,db,$,esc,result,requireProfile,getUse
  function enterToSend(input,form){input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();if(form.querySelector('button.primary')?.disabled)return;try{if(composerBody(input))form.requestSubmit();}catch(error){fail(error);}}});}
  function stop(){clearTimeout(timer);epoch++;$('#chat-popup')?.close();}
  async function inbox(){
-  const savedActive=active;stop();active=savedActive;if(!requireProfile()){$('#content').innerHTML='<div class="empty"><h2>Your private conversations</h2><p>Sign in to send and receive messages.</p></div>';return;}
+  const savedActive=active;stop();active=savedActive;if(!uid()){
+   $('#content').innerHTML='<section class="messages"><div class="message-heading inbox-actions"><button id="guest-new-chat" aria-label="New Chat">＋ New Chat</button></div><div class="message-tabs" role="tablist"><button data-guest-inbox="following" role="tab">Following</button><button data-guest-inbox="requests" role="tab">Requests & others</button></div><div class="empty"><h2>Your private conversations</h2><p id="guest-chat-description"></p><button id="guest-chat-signin" class="primary">Sign in or create account</button></div></section>';
+   const paint=()=>{document.querySelectorAll('[data-guest-inbox]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.guestInbox===tab)));$('#guest-chat-description').textContent=tab==='following'?'Chat with the people you follow. Sign in or create an account to start a conversation.':'Accept or decline messages from other people. Sign in or create an account to see your requests.';};
+   document.querySelectorAll('[data-guest-inbox]').forEach(b=>b.onclick=()=>{tab=b.dataset.guestInbox;paint();});
+   $('#guest-new-chat').onclick=()=>requireProfile();$('#guest-chat-signin').onclick=()=>requireProfile();paint();return;
+  }if(!requireProfile()){$('#content').innerHTML='<div class="empty"><h2>Your private conversations</h2><p>Sign in to send and receive messages.</p></div>';return;}
   const request=epoch;
   $('#content').innerHTML='<section class="messages"><div class="message-heading inbox-actions"><button id="new-message" aria-label="New Chat">＋ New Chat</button></div><div class="message-tabs" role="tablist"><button data-inbox="following" role="tab">Following</button><button data-inbox="requests" role="tab">Requests & others</button></div><label class="message-search">Search conversations<input id="message-search" placeholder="Search names or usernames"></label><div id="message-list"></div><section id="message-chat" hidden></section></section>';
   $('[data-inbox="'+tab+'"]').setAttribute('aria-selected','true');
