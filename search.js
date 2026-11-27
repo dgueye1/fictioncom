@@ -1,7 +1,7 @@
 export function createSearch({db,esc,showProfile,openPost,messagePerson,getUser}){
  const form=document.createElement('form');form.className='site-search';form.hidden=true;
  form.innerHTML='<label for="site-search-query">Search</label><div class="site-search-row"><input id="site-search-query" type="search" maxlength="100" autocomplete="off" placeholder="Search posts or people"><button type="submit">Search</button><button type="button" id="site-search-clear" hidden>Clear</button></div><div class="search-kinds" role="tablist" aria-label="Search results"><button type="button" data-search-kind="posts" role="tab" aria-selected="true">Posts</button><button type="button" data-search-kind="people" role="tab" aria-selected="false">People</button></div><div id="site-search-results" aria-live="polite" hidden></div>';
- document.querySelector('.section-heading').after(form);
+ (document.querySelector('#story-strip')||document.querySelector('.section-heading')).after(form);
  const input=form.querySelector('input'),results=form.querySelector('#site-search-results'),clear=form.querySelector('#site-search-clear'),kinds=form.querySelector('.search-kinds');
  let view='feed',kind='posts',generation=0,timer;
  const unique=rows=>[...new Map(rows.map(row=>[row.id,row])).values()];
