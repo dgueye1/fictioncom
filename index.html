@@ -1,3 +1,195 @@
 <!doctype html>
-<html lang="en"><head><script>try{var t=localStorage.getItem('fictioncom-theme');if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;}catch(e){}</script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101321"><meta name="description" content="Share your anime world. Photos, theories, and episode conversations on FictionCom."><title>FictionCom — Your fandom, together</title><link rel="canonical" href="https://fictioncom.pages.dev/"><meta property="og:type" content="website"><meta property="og:site_name" content="FictionCom"><meta property="og:title" content="FictionCom — Your fandom, together"><meta property="og:description" content="Share your anime world. Photos, theories, and episode conversations on FictionCom."><meta property="og:url" content="https://fictioncom.pages.dev/"><meta property="og:image" content="https://fictioncom.pages.dev/og-image.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="FictionCom — Your fandom, together"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="FictionCom — Your fandom, together"><meta name="twitter:description" content="Share your anime world. Photos, theories, and episode conversations on FictionCom."><meta name="twitter:url" content="https://fictioncom.pages.dev/"><meta name="twitter:image" content="https://fictioncom.pages.dev/og-image.png"><meta name="twitter:image:alt" content="FictionCom — Your fandom, together"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/site.webmanifest"><link rel="stylesheet" href="styles.css"><script src="/analytics.js"></script></head>
-<body><header><a class="brand" href="/"><span class="mark">✦</span> FictionCom</a><div class="header-tools"><button id="theme-toggle" class="quiet icon-button" type="button" aria-label="Toggle color theme"></button><button id="notifications" class="quiet" aria-label="Notifications"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></button><button id="account" class="quiet">Sign in</button></div></header><div class="layout"><aside><nav aria-label="Main navigation"><button data-view="feed" class="active"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg><span>Feed</span></button><button data-view="explore"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 6-6 2 2-6z"/></svg><span>Explore</span></button><button data-view="create" id="nav-create" aria-label="Create"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Create</span></button><button data-view="messages"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 6h14v10H8l-3 3z"/></svg><span>Chat</span><span id="chat-unread-badge" class="chat-unread-badge" hidden></span></button><button data-view="profile"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 19.2c1.4-3 3.8-4.5 7-4.5s5.6 1.5 7 4.5"/></svg><span>Profile</span></button></nav><p class="side-note">Your fandom.<br>Your people.<br>Your next great theory.</p><button id="rules" class="quiet">Community rules</button></aside><main><div class="section-heading"><div><p class="eyebrow">ANIME · MANGA · YOU</p><h1 id="view-title">Community feed</h1></div><button id="refresh" class="quiet" aria-label="Refresh feed">↻ Refresh</button></div><div id="feed-tabs" class="feed-tabs" role="tablist" aria-label="Feed"><button type="button" data-feed="feed" role="tab" aria-selected="true">For you</button><button type="button" data-feed="theory" role="tab">Theories</button><button type="button" data-feed="episodes" role="tab">Episodes</button><button type="button" data-feed="chapters" role="tab">Chapters</button></div><section id="story-strip" class="story-strip" aria-label="Stories"></section><div class="create-row"><p class="small">Browse freely. Sign in to join the conversation.</p><button id="compose" class="primary">＋ Create a post</button></div><div id="intro" class="intro"><span class="intro-symbol">✦</span><div><strong>Find your people between episodes.</strong><p>Share your collection, a wild theory, or that chapter you can’t stop thinking about.</p></div></div><form id="filters" class="filters"><label>Series<input id="series-filter" placeholder="All anime & manga" maxlength="100"></label><button class="quiet">Filter</button><button id="clear-series" type="button" class="quiet">Clear</button><label class="sort-label">Sort<select id="discussion-sort"><option value="recommended">For you</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="episode-asc">Episode / chapter: low to high</option><option value="episode-desc">Episode / chapter: high to low</option></select></label></form><div class="community-tools"><button id="series-page" hidden>View series page</button><button id="discover">Find people</button><button id="my-series">My anime & manga</button></div><div id="content" aria-live="polite"></div></main><section class="rail"><div class="rail-card"><p class="eyebrow">A PLACE FOR EVERY FAN</p><h2>Make it yours.</h2><p>Real photo or anime avatar. Cosplay or chapter analysis. Choose how you show up.</p></div><div class="rail-card"><h2>Keep the reveal a surprise.</h2><p>Check spoiler labels before opening a theory or reaction.</p></div><div class="rail-card"><h2>Community first.</h2><p>No nudity or explicit content. Do not upload inappropriate pictures. Report content that breaks the community rules.</p></div></section></div><dialog id="modal"><button id="close-modal" class="close" aria-label="Close dialog">×</button><div id="modal-body"></div></dialog><div id="toast" role="status"></div><footer class="public-footer"><a href="privacy.html">Privacy</a><a href="terms.html">Terms & rules</a><button id="public-support">Support</button><button id="public-feedback">Feedback</button><span>For fans age 14 and up</span></footer><script type="module" src="monitoring.js"></script><script type="module" src="app.js"></script></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="Share your anime world. Photos, theories, and episode conversations on FictionCom.">
+<title>FictionCom — Your fandom, together</title>
+<link rel="canonical" href="https://fictioncom.pages.dev/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="FictionCom">
+<meta property="og:title" content="FictionCom — Your fandom, together">
+<meta property="og:description" content="Share your anime world. Photos, theories, and episode conversations on FictionCom.">
+<meta property="og:url" content="https://fictioncom.pages.dev/">
+<meta property="og:image" content="https://fictioncom.pages.dev/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="FictionCom — Your fandom, together">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FictionCom — Your fandom, together">
+<meta name="twitter:description" content="Share your anime world. Photos, theories, and episode conversations on FictionCom.">
+<meta name="twitter:url" content="https://fictioncom.pages.dev/">
+<meta name="twitter:image" content="https://fictioncom.pages.dev/og-image.png">
+<meta name="twitter:image:alt" content="FictionCom — Your fandom, together">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="instagram.css">
+<script src="/analytics.js"></script>
+<script>
+try{
+  var saved=localStorage.getItem('fictioncom-theme');
+  var theme=saved||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');
+  document.documentElement.dataset.theme=theme;
+  var meta=document.querySelector('meta[name=theme-color]');
+  if(meta)meta.content=theme==='light'?'#ffffff':'#000000';
+}catch(e){}
+</script>
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<div class="app-shell">
+<aside class="ig-nav">
+  <a class="brand wordmark" href="#feed">FictionCom</a>
+  <nav aria-label="Main navigation">
+    <button type="button" data-view="feed" class="nav-item active">
+      <span class="ico" aria-hidden="true"><svg class="ico-line" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><svg class="ico-fill" viewBox="0 0 24 24"><path d="M12 3.2 3.2 10.4V20a1 1 0 0 0 1 1H9v-6h6v6h4.8a1 1 0 0 0 1-1v-9.6L12 3.2Z" fill="currentColor"/></svg></span>
+      <span>Home</span>
+    </button>
+    <button type="button" data-view="explore" class="nav-item">
+      <span class="ico" aria-hidden="true"><svg class="ico-line" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m15.2 8.8-1.4 4.2-4.2 1.4 1.4-4.2 4.2-1.4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><svg class="ico-fill" viewBox="0 0 24 24"><path d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8Zm3.7 6.1-1.6 4.7-4.7 1.6 1.6-4.7 4.7-1.6Z" fill="currentColor"/></svg></span>
+      <span>Explore</span>
+    </button>
+    <button type="button" id="nav-create" class="nav-item" data-create="post">
+      <span class="ico" aria-hidden="true"><svg class="ico-line" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v8M8 12h8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><svg class="ico-fill" viewBox="0 0 24 24"><path d="M7.2 3h9.6A4.2 4.2 0 0 1 21 7.2v9.6A4.2 4.2 0 0 1 16.8 21H7.2A4.2 4.2 0 0 1 3 16.8V7.2A4.2 4.2 0 0 1 7.2 3Zm4.8 5v3H9v2h3v3h2v-3h3v-2h-3V8h-2Z" fill="currentColor"/></svg></span>
+      <span>Create</span>
+    </button>
+    <button type="button" data-view="messages" class="nav-item">
+      <span class="ico" aria-hidden="true"><svg class="ico-line" viewBox="0 0 24 24"><path d="M21 4.5 3.8 11.2c-.9.4-.8 1.6.1 1.8l6.2 1.5 1.6 6.1c.3.9 1.5.9 1.8 0L21 4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><svg class="ico-fill" viewBox="0 0 24 24"><path d="m21.6 3.2-17.8 7c-1.2.5-1.1 2.2.1 2.5l6.4 1.6 1.7 6.3c.3 1.2 2 1.2 2.4 0l7.2-17.4Z" fill="currentColor"/></svg></span>
+      <span>Messages</span>
+      <span id="chat-unread-badge" class="chat-unread-badge" hidden></span>
+    </button>
+    <button type="button" id="notifications" class="nav-item notif-btn" aria-label="Notifications">
+      <span class="ico" aria-hidden="true"><svg class="ico-line" viewBox="0 0 24 24"><path d="M12 20.2s-7.2-4.4-7.2-9.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.2 3.5c0 4.7-7.2 9.1-7.2 9.1Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><svg class="ico-fill" viewBox="0 0 24 24"><path d="M12 21s-7.6-4.6-7.6-9.6A4.8 4.8 0 0 1 12 6.8a4.8 4.8 0 0 1 7.6 4.6C19.6 16.4 12 21 12 21Z" fill="currentColor"/></svg></span>
+      <span>Notifications</span>
+      <span class="notification-count" hidden></span>
+    </button>
+    <button type="button" data-view="profile" class="nav-item">
+      <span class="ico" aria-hidden="true"><svg class="ico-line" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.2 17.2a5 5 0 0 1 9.6 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><svg class="ico-fill" viewBox="0 0 24 24"><path d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8Zm0 4.2a2.7 2.7 0 1 1 0 5.4 2.7 2.7 0 0 1 0-5.4Zm0 12.2a7.2 7.2 0 0 1-5.4-2.4 4.6 4.6 0 0 1 10.8 0A7.2 7.2 0 0 1 12 19Z" fill="currentColor"/></svg></span>
+      <span>Profile</span>
+    </button>
+  </nav>
+  <div class="nav-foot">
+    <div id="more-panel" class="more-panel" hidden>
+      <button type="button" data-view="theory">Theories</button>
+      <button type="button" data-view="chapters">Chapter reviews</button>
+      <button type="button" data-view="episodes">Episode reviews</button>
+      <button type="button" id="discover">Find people</button>
+      <button type="button" id="my-series">My anime &amp; manga</button>
+      <button type="button" id="rules">Community rules</button>
+      <button type="button" id="refresh">Refresh</button>
+      <button type="button" id="account">Sign in</button>
+    </div>
+    <button type="button" id="theme-toggle" class="nav-item" aria-label="Toggle color theme">
+      <span class="ico" aria-hidden="true"><svg class="icon-moon" viewBox="0 0 24 24"><path d="M16 3.2A8.5 8.5 0 1 0 20.8 15 7 7 0 0 1 16 3.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+      <span>Theme</span>
+    </button>
+    <button type="button" id="more-toggle" class="nav-item" aria-expanded="false" aria-controls="more-panel">
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span>More</span>
+    </button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <a class="brand wordmark" href="#feed">FictionCom</a>
+  <div class="header-tools">
+    <button type="button" id="theme-toggle-mobile" class="icon-btn" aria-label="Toggle color theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" width="22" height="22"><path d="M16 3.2A8.5 8.5 0 1 0 20.8 15 7 7 0 0 1 16 3.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </button>
+    <button type="button" id="notifications-mobile" class="icon-btn notif-btn" aria-label="Notifications">
+      <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 20.2s-7.2-4.4-7.2-9.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.2 3.5c0 4.7-7.2 9.1-7.2 9.1Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      <span class="notification-dot" hidden></span>
+    </button>
+    <button type="button" data-view="messages" class="icon-btn" aria-label="Messages">
+      <svg viewBox="0 0 24 24" width="24" height="24"><path d="M21 4.5 3.8 11.2c-.9.4-.8 1.6.1 1.8l6.2 1.5 1.6 6.1c.3.9 1.5.9 1.8 0L21 4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      <span class="chat-unread-badge" hidden></span>
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+<main>
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">FictionCom</p>
+      <h1 id="view-title">Home</h1>
+    </div>
+  </div>
+  <section id="story-strip" class="story-strip" aria-label="Stories"></section>
+  <nav id="feed-tabs" class="feed-tabs" aria-label="Feed sections" hidden>
+    <button type="button" data-feed="feed" aria-selected="true">For you</button>
+    <button type="button" data-feed="theory">Theories</button>
+    <button type="button" data-feed="chapters">Chapter reviews</button>
+    <button type="button" data-feed="episodes">Episode reviews</button>
+  </nav>
+  <div class="create-row"><p class="small">Browse freely. Sign in to join the conversation.</p><button id="compose" class="primary" type="button">Create</button></div>
+  <div id="intro" class="intro" hidden><span class="intro-symbol">✦</span><div><strong>Find your people between episodes.</strong><p>Share a photo, a theory, or the chapter you can’t stop thinking about.</p></div></div>
+  <form id="filters" class="filters">
+    <label>Series<input id="series-filter" placeholder="All anime & manga" maxlength="100"></label>
+    <button class="quiet" type="submit">Filter</button>
+    <button id="clear-series" type="button" class="quiet">Clear</button>
+    <label class="sort-label">Sort<select id="discussion-sort"><option value="recommended">For you</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="episode-asc">Episode / chapter: low to high</option><option value="episode-desc">Episode / chapter: high to low</option></select></label>
+  </form>
+  <div class="community-tools"><button id="series-page" type="button" hidden>View series page</button></div>
+  <div id="content" aria-live="polite"></div>
+</main>
+<aside class="rail" aria-label="Suggestions">
+  <div id="rail-switch" class="rail-switch"></div>
+  <div class="rail-suggest">
+    <div class="rail-suggest-head"><span>Suggested for you</span><button type="button" id="rail-see-all" class="text-button">See all</button></div>
+    <div id="rail-suggestions"></div>
+  </div>
+</aside>
+</div>
+
+<nav class="tabbar" aria-label="Mobile">
+  <button type="button" data-view="feed" class="active" aria-label="Home">
+    <span class="ico" aria-hidden="true"><svg class="ico-line" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><svg class="ico-fill" viewBox="0 0 24 24"><path d="M12 3.2 3.2 10.4V20a1 1 0 0 0 1 1H9v-6h6v6h4.8a1 1 0 0 0 1-1v-9.6L12 3.2Z" fill="currentColor"/></svg></span>
+  </button>
+  <button type="button" data-view="explore" aria-label="Explore">
+    <span class="ico" aria-hidden="true"><svg class="ico-line" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m15.2 8.8-1.4 4.2-4.2 1.4 1.4-4.2 4.2-1.4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><svg class="ico-fill" viewBox="0 0 24 24"><path d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8Zm3.7 6.1-1.6 4.7-4.7 1.6 1.6-4.7 4.7-1.6Z" fill="currentColor"/></svg></span>
+  </button>
+  <button type="button" id="tab-create" data-create="post" aria-label="Create">
+    <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v8M8 12h8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+  </button>
+  <button type="button" data-view="messages" aria-label="Messages">
+    <span class="ico" aria-hidden="true"><svg class="ico-line" viewBox="0 0 24 24"><path d="M21 4.5 3.8 11.2c-.9.4-.8 1.6.1 1.8l6.2 1.5 1.6 6.1c.3.9 1.5.9 1.8 0L21 4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><svg class="ico-fill" viewBox="0 0 24 24"><path d="m21.6 3.2-17.8 7c-1.2.5-1.1 2.2.1 2.5l6.4 1.6 1.7 6.3c.3 1.2 2 1.2 2.4 0l7.2-17.4Z" fill="currentColor"/></svg></span>
+    <span class="chat-unread-badge" hidden></span>
+  </button>
+  <button type="button" data-view="profile" aria-label="Profile">
+    <span class="ico" aria-hidden="true"><svg class="ico-line" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.2 17.2a5 5 0 0 1 9.6 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><svg class="ico-fill" viewBox="0 0 24 24"><path d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8Zm0 4.2a2.7 2.7 0 1 1 0 5.4 2.7 2.7 0 0 1 0-5.4Zm0 12.2a7.2 7.2 0 0 1-5.4-2.4 4.6 4.6 0 0 1 10.8 0A7.2 7.2 0 0 1 12 19Z" fill="currentColor"/></svg></span>
+  </button>
+</nav>
+</div>
+
+<div id="notif-root" class="notif-root" hidden>
+  <button type="button" id="notif-backdrop" class="notif-backdrop" aria-label="Close notifications"></button>
+  <aside id="notif-panel" class="notif-panel" role="dialog" aria-modal="true" aria-labelledby="notif-title">
+    <header class="notif-head">
+      <button type="button" id="notif-close" class="notif-back" aria-label="Close notifications">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h2 id="notif-title">Notifications</h2>
+      <button type="button" id="read-all" class="text-button">Mark all read</button>
+    </header>
+    <div id="notif-scroll" class="notif-scroll"></div>
+  </aside>
+</div>
+
+<div id="lightbox" class="lightbox" hidden>
+  <button type="button" id="lightbox-close" aria-label="Close photo">×</button>
+  <img id="lightbox-img" alt="">
+</div>
+
+<dialog id="modal"><button id="close-modal" class="close" type="button" aria-label="Close dialog">×</button><div id="modal-body"></div></dialog>
+<div id="toast" role="status"></div>
+<footer class="public-footer"><a href="privacy.html">Privacy</a><a href="terms.html">Terms &amp; rules</a><button id="public-support" type="button">Support</button><button id="public-feedback" type="button">Feedback</button><span>For fans age 14 and up</span></footer>
+<script type="module" src="monitoring.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@ const DEFAULT_DESCRIPTION='Share your anime world. Photos, theories, and episode
 
 export function isAppRoute(pathname){
   const path=pathname.replace(/\/+$/,'')||'/';
-  return path==='/'||path==='/feed'||path==='/explore'||path==='/chat'||/^\/p\/[0-9a-f-]{36}$/i.test(path)||/^\/u\/[a-z0-9_]{3,24}$/i.test(path)||/^\/series\/[^/]+$/.test(path);
+  return path==='/'||path==='/feed'||path==='/explore'||path==='/theories'||path==='/chapters'||path==='/episodes'||path==='/chat'||/^\/p\/[0-9a-f-]{36}$/i.test(path)||/^\/u\/[a-z0-9_]{3,24}$/i.test(path)||/^\/series\/[^/]+$/.test(path);
 }
 
 function escapeAttr(value){
@@ -57,6 +57,15 @@ export async function applyOpenGraph(html,url,{fetchImpl=fetch,supabaseUrl,supab
       const medium=url.searchParams.get('medium')==='manga'?'Manga':'Anime';
       meta.title=clip(`${title} · ${medium} · FictionCom`,90);
       meta.description=`Theories and conversations about ${title} on FictionCom.`;
+    }else if(url.pathname==='/theories'){
+      meta.title='Theories · FictionCom';
+      meta.description='Fan theories, separate from chapter and episode reviews.';
+    }else if(url.pathname==='/chapters'){
+      meta.title='Chapter reviews · FictionCom';
+      meta.description='Chapter reviews, separate from theories and episode reviews.';
+    }else if(url.pathname==='/episodes'){
+      meta.title='Episode reviews · FictionCom';
+      meta.description='Episode reviews, separate from theories and chapter reviews.';
     }else if(url.pathname==='/explore'){
       meta.title='Explore · FictionCom';
       meta.description='Discover anime and manga posts, trending series, and creators on FictionCom.';
