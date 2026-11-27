@@ -75,8 +75,8 @@ try{
   <div class="nav-foot">
     <div id="more-panel" class="more-panel" hidden>
       <button type="button" data-view="theory">Theories</button>
-      <button type="button" data-view="episodes">Episodes</button>
-      <button type="button" data-view="chapters">Chapters</button>
+      <button type="button" data-view="chapters">Chapter reviews</button>
+      <button type="button" data-view="episodes">Episode reviews</button>
       <button type="button" id="discover">Find people</button>
       <button type="button" id="my-series">My anime &amp; manga</button>
       <button type="button" id="rules">Community rules</button>
@@ -121,6 +121,12 @@ try{
     </div>
   </div>
   <section id="story-strip" class="story-strip" aria-label="Stories"></section>
+  <nav id="feed-tabs" class="feed-tabs" aria-label="Feed sections" hidden>
+    <button type="button" data-feed="feed" aria-selected="true">For you</button>
+    <button type="button" data-feed="theory">Theories</button>
+    <button type="button" data-feed="chapters">Chapter reviews</button>
+    <button type="button" data-feed="episodes">Episode reviews</button>
+  </nav>
   <div class="create-row"><p class="small">Browse freely. Sign in to join the conversation.</p><button id="compose" class="primary" type="button">Create</button></div>
   <div id="intro" class="intro" hidden><span class="intro-symbol">✦</span><div><strong>Find your people between episodes.</strong><p>Share a photo, a theory, or the chapter you can’t stop thinking about.</p></div></div>
   <form id="filters" class="filters">
