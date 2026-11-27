@@ -172,6 +172,11 @@ html[data-theme="dark"] .icon-sun,html[data-theme="light"] .icon-moon{display:no
 input,textarea,select{
   background:var(--elev)!important;color:var(--text)!important;border:1px solid var(--line)!important;border-radius:8px;
 }
+input[type="checkbox"],input[type="radio"]{
+  width:22px!important;height:22px!important;min-width:22px;flex:none;
+  margin:2px 0 0;padding:0!important;accent-color:#0095f6;
+}
+.check{display:flex;align-items:flex-start;gap:12px;min-height:44px}
 dialog{background:var(--bg)!important;color:var(--text)!important;border:1px solid var(--line)!important}
 dialog::backdrop{background:#0009}
 .catalog-options,.reply-picker,.story-menu,.share-dialog{background:var(--elev)!important;color:var(--text)!important;border-color:var(--line)!important}
