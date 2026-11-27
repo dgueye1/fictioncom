@@ -1,13 +1,14 @@
 const drafts=new WeakMap();
 const reactions=[['hello','Hello','hi hey wave'],['laugh','Laugh','lol funny haha'],['wow','Wow','surprised amazing'],['yes','Yes','yay celebrate agree'],['thanks','Thanks','thank you grateful'],['love','Love it','heart love']];
 const emojis=['😀','😄','😂','🥹','😊','😍','🥰','😎','🤔','😮','😭','😅','😴','🤯','😤','🥳','❤️','💚','🔥','✨','👏','🙌','👍','👎','🙏','💯','👀','🎉','🍿','⚔️','📚','🌸'];
+import {linkify} from './text-links.js';
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function safeGif(value){
  if(reactions.some(([id])=>value==='/reaction-'+id+'.gif'))return value;
  try{const u=new URL(value);if(u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&['media.giphy.com','i.giphy.com','media.tenor.com'].includes(u.hostname)&&/\.gif$/i.test(u.pathname)&&u.href.length<=500)return u.href;}catch{}
  return null;
 }
-export function renderRichBody(body){return String(body||'').split(/(\[gif:[^\]\n]+\])/g).map(part=>{if(part.startsWith('[gif:')&&part.endsWith(']')){const url=safeGif(part.slice(5,-1));if(url)return `<img class="reply-gif" src="${escape(url)}" alt="GIF reaction" loading="lazy" referrerpolicy="no-referrer">`;}return escape(part);}).join('');}
+export function renderRichBody(body){return String(body||'').split(/(\[gif:[^\]\n]+\])/g).map(part=>{if(part.startsWith('[gif:')&&part.endsWith(']')){const url=safeGif(part.slice(5,-1));if(url)return `<img class="reply-gif" src="${escape(url)}" alt="GIF reaction" loading="lazy" referrerpolicy="no-referrer">`;}return linkify(part);}).join('');}
 export function composerBody(input){const gif=drafts.get(input)?.gif;const body=[input.value.trim(),gif?'[gif:'+gif+']':''].filter(Boolean).join('\n');if(body.length>input.maxLength)throw Error('Shorten your text before adding a GIF.');return body;}
 export function clearComposer(input){const draft=drafts.get(input);input.value='';if(draft){draft.gif=null;draft.preview.replaceChildren();draft.panel.hidden=true;input.required=draft.required;input.closest('form').querySelectorAll('.reply-tools button').forEach(b=>b.setAttribute('aria-expanded','false'));}}
 export function attachRichComposer(input){
