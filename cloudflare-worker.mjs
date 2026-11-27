@@ -1,4 +1,6 @@
 import {Buffer} from 'node:buffer';
+import {SUPABASE_URL,SUPABASE_KEY} from './config.js';
+import {isAppRoute,applyOpenGraph} from './og.mjs';
 import {createBillingServer} from './billing-server.mjs';
 import {catalogResponse} from './catalog-server.mjs';
 import {createEmailAlerts} from './email-alerts.mjs';
@@ -40,6 +42,20 @@ export default {
    try{const {code}=JSON.parse(Buffer.concat(chunks).toString());if(!['runtime','async'].includes(code))return new Response(null,{status:400});}catch{return new Response(null,{status:400});}
    return new Response(null,{status:204});
   }
-  return new Response('Not found',{status:404});
+  return serveDocument(request,env);
  }
 };
+
+async function serveDocument(request,env){
+ const url=new URL(request.url);
+ if(!env.ASSETS)return new Response('Not found',{status:404,headers:{'X-Content-Type-Options':'nosniff'}});
+ if(!isAppRoute(url.pathname)){
+  const asset=await env.ASSETS.fetch(request);
+  if(asset.status!==404)return asset;
+  return new Response('Not found',{status:404,headers:{'X-Content-Type-Options':'nosniff'}});
+ }
+ const index=await env.ASSETS.fetch(new Request(new URL('/index.html',url.origin),request));
+ if(!index.ok)return new Response('Not found',{status:index.status,headers:{'X-Content-Type-Options':'nosniff'}});
+ const html=await applyOpenGraph(await index.text(),url,{supabaseUrl:SUPABASE_URL,supabaseKey:SUPABASE_KEY});
+ return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'}});
+}
