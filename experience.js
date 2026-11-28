@@ -1,3 +1,4 @@
+import {frameUrl,overlayHtml,readOverlays} from './media-overlays.js?v=20261128c';
 const SIGNED_SECONDS=3600;
 const CACHE_MS=50*60*1000;
 
@@ -113,7 +114,7 @@ export function createExperience({db,result,esc,getUser}){
     const path=esc(item.path||'');
     if(item.media_type==='video'){
       const poster=posterFor(post,item,urls);
-      return `<div class="carousel-slide"><div class="media-frame"><video class="media ig-video" src="${esc(url)}" ${poster?`poster="${esc(poster)}"`:''} data-path="${path}" muted playsinline loop preload="metadata" data-inline data-video="${post.id}"></video>${soundButton()}</div></div>`;
+      return `<div class="carousel-slide"><div class="media-frame"><video class="media ig-video" src="${esc(frameUrl(url))}" ${poster?`poster="${esc(poster)}"`:''} data-path="${path}" muted playsinline webkit-playsinline loop preload="metadata" data-inline data-video="${post.id}"></video>${overlayHtml(readOverlays(post,item.path),esc)}${soundButton()}</div></div>`;
     }
     const alt=index? 'Additional post image' : `Image shared by ${post.profiles?.display_name||'a fan'}`;
     return `<div class="carousel-slide"><div class="media-frame"><img class="media" src="${esc(url)}" data-path="${path}" alt="${esc(alt)}" loading="lazy"></div></div>`;
@@ -221,13 +222,15 @@ export function createExperience({db,result,esc,getUser}){
       if(video.muted){silence(video);video.muted=false;}
       else video.muted=true;
       const preview=video.dataset.preview;
-      if(preview&&!video.getAttribute('src'))video.src=preview;
+      if(preview&&!video.getAttribute('src'))video.src=frameUrl(preview);
       if(video.paused)video.play().catch(()=>{});
       syncSound(video);
     };
     videos.forEach(video=>{
       if(video.dataset.inlineBound==='1')return;
       video.dataset.inlineBound='1';
+      video.muted=true;video.playsInline=true;video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
+      if(!video.dataset.frameWatch){video.dataset.frameWatch='1';video.addEventListener('loadedmetadata',()=>{if(video.currentTime<0.05&&video.duration>0.15){try{video.currentTime=Math.min(0.1,video.duration/2);}catch{}}});video.addEventListener('error',()=>{const frame=video.closest('.media-frame, .explore-tile');if(!frame||frame.querySelector('.media-unplayable'))return;const note=document.createElement('p');note.className='media-unplayable';note.textContent='This browser can’t play this video.';frame.append(note);});}
       syncSound(video);
       let tap=0;
       video.addEventListener('click',event=>{
@@ -249,7 +252,7 @@ export function createExperience({db,result,esc,getUser}){
         if(!(video instanceof HTMLVideoElement))return;
         if(entry.isIntersecting&&entry.intersectionRatio>=0.5){
           const preview=video.dataset.preview;
-          if(preview&&!video.getAttribute('src'))video.src=preview;
+          if(preview&&!video.getAttribute('src'))video.src=frameUrl(preview);
           video.play().catch(()=>{});
         }else video.pause();
       });

@@ -1,16 +1,17 @@
-import {createExperience} from './experience.js?v=20261127c';
+import {createExperience} from './experience.js?v=20261128c';
 import {createInterests,postTypeBadge,postTypeKey,hashtags} from './interest.js?v=20261127e';
-import {createComposer} from './composer.js?v=20261128b';
+import {createComposer} from './composer.js?v=20261128c';
 import {linkify,attachMentionSearch} from './text-links.js';
 import {createSearch} from './search.js?v=20261127g';
 import {createSharing} from './sharing.js';
 import {attachFavorites} from './favorites-picker.js';
 import {createBilling} from './billing.js?v=20261127f';
 import {createMessages} from './messages.js';
-import {validateMedia,configureCaptureButtons,mediaBaseType} from './media-validation.js?v=20261127c';
+import {validateMedia,configureCaptureButtons,mediaBaseType,coerceMediaFile} from './media-validation.js?v=20261128c';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
-import { openStoryEditor } from './story-editor.js';
+import { openStoryEditor } from './story-editor.js?v=20261128c';
+import {cleanOverlays,framePoster,frameUrl,mountPreviewVideo,overlayHtml,readOverlays} from './media-overlays.js?v=20261128c';
 import { attachCatalog } from './catalog.js';
 import { createCommunity } from './community.js';
 import { createBetaTools } from './beta-tools.js';
@@ -128,7 +129,7 @@ async function card(p,pre){
  const saved=!!ctx.saved;
  const isHidden=community.spoiler(p)&&!revealed.has(p.id);
  const raw=!isHidden&&p.kind!=='story'?experience.renderMedia(p,ctx):'';
- const ratioClass={'1:1':'ratio-1-1','4:5':'ratio-4-5','16:9':'ratio-16-9',original:'ratio-original'}[p.media_ratio]||'ratio-4-5';const media=raw?'<div class="ig-media '+ratioClass+'">'+raw+'</div>':'';
+ const storedRatio=p.media_ratio;const ratioClass=storedRatio==null||['original','1:1','4:5','16:9'].includes(storedRatio)?'ratio-4-5':'ratio-4-5';const media=raw?'<div class="ig-media '+ratioClass+'">'+raw+'</div>':'';
  const seriesLabel=p.series?p.series+(p.kind==='reaction'&&p.episode?' · '+(p.medium==='manga'?'Chapter':'Episode')+' '+p.episode:''):'';
  const username=author?.username||author?.display_name||'member';
  const body=p.body||'';
@@ -168,7 +169,7 @@ async function renderStoryStrip(request=loadId){
  catch{if(request!==loadId||user?.id!==owner)return;if(!$('#story-strip').children.length)await paintStoryStrip(request);}
 }
 async function refreshCurrent(){if(activeProfile)await showProfile(activeProfile);else await load();}
-function createStory(){if(!requireProfile())return;openStoryEditor({modal,onPublish:async(file,metadata)=>{await uploadPost(file,{...metadata,author:user.id});close();toast('Your story is live.');view='feed';await load();}});}
+function createStory(){if(!requireProfile())return;openStoryEditor({username:me?.username||'',onPublish:async(file,metadata)=>{await uploadPost(file,{...metadata,author:user.id});close();toast('Your story is live.');view='feed';await load();}});}
 function storyIcon(type){const paths={mute:'<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 6m0-6-5 6"/>',sound:'<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>',pause:'<path d="M8 5v14m8-14v14"/>',play:'<path d="m8 5 11 7-11 7V5Z"/>'};return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[type]}</svg>`;}
 async function story(id){
  const epoch=++storyEpoch;stopStoryPlayback();
@@ -180,8 +181,8 @@ async function story(id){
  if(epoch!==storyEpoch)return;
  if(community.spoiler(p)&&!revealed.has(id)){markStoryOpened(p);modal(header+`<div class="spoiler"><h2>Spoilers ahead</h2><p>${esc(p.series)} · ${p.medium==='manga'?'Chapter':'Episode'} ${p.episode||'?'}</p><button id="reveal-story">Watch story</button></div>`,true);$('#reveal-story').onclick=()=>{revealed.add(id);story(id).catch(fail);};return;}
  const url=await signed(p.media_path);if(epoch!==storyEpoch)return;if(!url)throw Error('This story is unavailable.');
- modal(`<div class="story-progress">${siblings.map((_,i)=>`<span class="${i<=index?'watched':''}"></span>`).join('')}</div>`+header+`<div id="story-stage" class="story-stage">${p.media_type==='video'?`<video autoplay muted playsinline src="${esc(url)}"></video>`:`<img src="${esc(url)}" alt="${esc(p.body||'Story photo')}">`}<button id="prev-story" class="story-nav story-nav-prev" aria-label="Previous story" ${sequenceIndex===0?'disabled':''}>‹</button><button id="next-story" class="story-nav story-nav-next" aria-label="Next story" ${sequenceIndex===storySequence.length-1?'disabled':''}>›</button>${'<button id="story-menu-toggle" class="story-menu-toggle" aria-label="Story options" aria-expanded="false">⋯</button><div id="story-menu" class="story-menu" hidden><button id="story-menu-action" class="danger">'+(own?'Delete story':'Report story')+'</button></div>'}</div>${own&&p.status!=='approved'?`<p class="status">${p.status==='pending'?'Upload incomplete · only visible to you':'Story removed · only visible to you'}</p>${p.status==='pending'?'<button id="retry-story-review">Finish upload</button>':''}`:''}<div class="story-top-controls"><button id="mute-story" aria-label="Unmute story">${storyIcon('mute')}</button><button id="pause-story" aria-label="Pause story">${storyIcon('pause')}</button></div>${own?'<button id="story-viewers" class="viewer-trigger" aria-expanded="false"><span class="viewer-chevron" aria-hidden="true">⌃</span><span>Viewers</span></button><section id="story-viewer-panel" class="story-viewer-sheet" hidden></section>':''}`,true);
- $('.story-card').insertAdjacentHTML('beforeend',`<section id="story-interactions" class="${own?'own-story-interactions':''}"></section>`);await enhancements.storyControls(p);
+ const storyOverlays=p.media_type==='video'?overlayHtml(readOverlays(p,p.media_path),esc):'';modal(`<div class="story-progress">${siblings.map((_,i)=>`<span class="${i<=index?'watched':''}"></span>`).join('')}</div>`+header+`<div id="story-stage" class="story-stage">${p.media_type==='video'?`<video autoplay muted playsinline webkit-playsinline preload="metadata" src="${esc(frameUrl(url))}"></video>${storyOverlays}`:`<img src="${esc(url)}" alt="${esc(p.body||'Story photo')}">`}<button id="prev-story" class="story-nav story-nav-prev" aria-label="Previous story" ${sequenceIndex===0?'disabled':''}>‹</button><button id="next-story" class="story-nav story-nav-next" aria-label="Next story" ${sequenceIndex===storySequence.length-1?'disabled':''}>›</button>${'<button id="story-menu-toggle" class="story-menu-toggle" aria-label="Story options" aria-expanded="false">⋯</button><div id="story-menu" class="story-menu" hidden><button id="story-menu-action" class="danger">'+(own?'Delete story':'Report story')+'</button></div>'}</div>${own&&p.status!=='approved'?`<p class="status">${p.status==='pending'?'Upload incomplete · only visible to you':'Story removed · only visible to you'}</p>${p.status==='pending'?'<button id="retry-story-review">Finish upload</button>':''}`:''}<div class="story-top-controls"><button id="mute-story" aria-label="Unmute story">${storyIcon('mute')}</button><button id="pause-story" aria-label="Pause story">${storyIcon('pause')}</button></div>${own?'<button id="story-viewers" class="viewer-trigger" aria-expanded="false"><span class="viewer-chevron" aria-hidden="true">⌃</span><span>Viewers</span></button><section id="story-viewer-panel" class="story-viewer-sheet" hidden></section>':''}`,true);
+ $('.story-card').insertAdjacentHTML('beforeend',`<section id="story-interactions" class="${own?'own-story-interactions':''}"></section>`);const storyVideo=$('#story-stage video');if(storyVideo)mountPreviewVideo(storyVideo);await enhancements.storyControls(p);
  $('#modal-body').querySelector('[data-story-profile]').onclick=()=>{close();showProfile(p.author);};const cardNode=$('.story-card');cardNode.append($('#prev-story'),$('#next-story'));const neighborIds=[storySequence[sequenceIndex-1],storySequence[sequenceIndex+1]];await Promise.all(neighborIds.map(async(neighborId,i)=>{const neighbor=storyPosts.find(s=>s.id===neighborId);if(!neighbor)return;const safe=!community.spoiler(neighbor)||revealed.has(neighbor.id),previewUrl=safe?await signed(neighbor.media_path):null;if(epoch!==storyEpoch||!cardNode.isConnected)return;const preview=document.createElement('button');preview.className='story-neighbor '+(i?'story-neighbor-next':'story-neighbor-prev');preview.setAttribute('aria-label',(i?'Next':'Previous')+' story by '+neighbor.profiles.display_name);preview.innerHTML=(previewUrl?(neighbor.media_type==='video'?`<video src="${esc(previewUrl)}" muted playsinline preload="metadata"></video>`:`<img src="${esc(previewUrl)}" alt="">`):'<span>Spoiler hidden</span>')+`<strong>${esc(neighbor.profiles.display_name)}</strong>`;preview.onclick=()=>story(neighborId).catch(fail);$('#modal-body').append(preview);}));if(epoch!==storyEpoch)return;
  markStoryOpened(p);
  if($('#retry-story-review'))$('#retry-story-review').onclick=guarded(async()=>{await reviewUpload(id);await renderStoryStrip();await story(id);});
@@ -247,7 +248,7 @@ async function showProfile(id,request){try{
 async function loadProfilePage(id,request){const button=$('#more-posts');if(!button)return;button.disabled=true;if($('#profile-skeleton'))$('#profile-skeleton').hidden=false;try{
  const posts=await result(engagementReady?db.rpc('profile_feed',{target:id,page_number:profilePage}).select('*,profiles!posts_author_fkey(*)'):db.from('posts').select('*,profiles!posts_author_fkey(*)').eq('author',id).neq('kind','avatar').neq('kind','story').order('created_at',{ascending:false}).range(profilePage*PAGE_SIZE,(profilePage+1)*PAGE_SIZE-1));
  const hydrated=await experience.hydrate(posts);
- const tiles=posts.map(p=>{const pack=hydrated.get(p.id)||{},stats=pack.stats||{},url=!community.spoiler(p)?pack.urls?.[p.media_path]:null;return `<div class="profile-tile" data-type="${p.kind==='theory'?'theory':p.kind==='reaction'&&p.medium==='manga'?'chapters':p.kind==='reaction'?'episodes':'post'}">${engagementReady&&enhancements.isPinned(p.id,p.author)?'<span class="pinned-label">Pinned</span>':''}<button data-open-post="${p.id}" class="profile-thumbnail" aria-label="Open ${esc(p.title||p.series||'post')}">${postTypeBadge(p)}${community.spoiler(p)?'<span class="tile-text">Spoilers<br>Tap to reveal</span>':url?(p.media_type==='video'?`<video muted preload="metadata" src="${esc(url)}"></video><span class="tile-kind">▶</span>`:`<img loading="lazy" data-path="${esc(p.media_path||'')}" src="${esc(url)}" alt="${esc(p.title||p.series||'Post photo')}">`):`<span class="tile-text">${esc((p.title||p.body||'').slice(0,90))}</span>`}${p.status!=='approved'?`<span class="tile-status">${esc(p.status)}</span>`:''}</button><div class="tile-stats"><span>◉ ${stats.views||0} views</span><span>♡ ${stats.likes||0}</span></div></div>`;});
+ const tiles=posts.map(p=>{const pack=hydrated.get(p.id)||{},stats=pack.stats||{},url=!community.spoiler(p)?pack.urls?.[p.media_path]:null;const posterPath=p.media_posters?.[p.media_path],poster=posterPath?pack.urls?.[posterPath]:'';return `<div class="profile-tile" data-type="${p.kind==='theory'?'theory':p.kind==='reaction'&&p.medium==='manga'?'chapters':p.kind==='reaction'?'episodes':'post'}">${engagementReady&&enhancements.isPinned(p.id,p.author)?'<span class="pinned-label">Pinned</span>':''}<button data-open-post="${p.id}" class="profile-thumbnail" aria-label="Open ${esc(p.title||p.series||'post')}">${postTypeBadge(p)}${community.spoiler(p)?'<span class="tile-text">Spoilers<br>Tap to reveal</span>':url?(p.media_type==='video'?`<video muted playsinline webkit-playsinline preload="metadata" ${poster?`poster="${esc(poster)}"`:''} src="${esc(frameUrl(url))}"></video><span class="tile-kind">▶</span>`:`<img loading="lazy" data-path="${esc(p.media_path||'')}" src="${esc(url)}" alt="${esc(p.title||p.series||'Post photo')}">`):`<span class="tile-text">${esc((p.title||p.body||'').slice(0,90))}</span>`}${p.status!=='approved'?`<span class="tile-status">${esc(p.status)}</span>`:''}</button><div class="tile-stats"><span>◉ ${stats.views||0} views</span><span>♡ ${stats.likes||0}</span></div></div>`;});
  if(request!==loadId||activeProfile!==id)return;profilePosts.push(...posts);profilePage++;$('#profile-grid').insertAdjacentHTML('beforeend',tiles.join(''));
  if(!profilePosts.length)$('#profile-grid').innerHTML=empty('No visible posts','Public posts appear here. Private posts require an approved follow request.');button.hidden=posts.length<PAGE_SIZE;experience.watchMore(button,()=>loadProfilePage(id,request).catch(fail));
  document.querySelectorAll('[data-open-post]').forEach(b=>b.onclick=()=>openProfilePost(b.dataset.openPost).catch(fail));
@@ -255,8 +256,8 @@ async function loadProfilePage(id,request){const button=$('#more-posts');if(!but
 async function openProfilePost(id){const p=profilePosts.find(p=>p.id===id);if(!p)return;feed=profilePosts;modal(await card(p));bindCards();const reveal=$('#modal-body [data-reveal]');if(reveal)reveal.onclick=()=>{revealed.add(id);openProfilePost(id).catch(fail);};if(!community.spoiler(p)||revealed.has(id))await recordView(id);}
 
 async function requests(rows){if(!rows.length)return;const people=await result(db.from('profiles').select('*').in('id',rows.map(r=>r.follower)));$('#requests').innerHTML=`<section class="rail-card"><h2>Follow requests</h2><div class="people">${people.map(p=>`<div class="person"><span>@${esc(p.username)}</span><button data-accept="${p.id}">Accept</button><button data-decline="${p.id}">Decline</button></div>`).join('')}</div></section>`;document.querySelectorAll('[data-accept]').forEach(b=>b.onclick=async()=>{try{await result(db.from('follows').update({accepted:true}).eq('follower',b.dataset.accept).eq('following',user.id));await load();}catch(e){fail(e);}});document.querySelectorAll('[data-decline]').forEach(b=>b.onclick=async()=>{try{await result(db.from('follows').delete().eq('follower',b.dataset.decline).eq('following',user.id));await load();}catch(e){fail(e);}});}
-const compose=createComposer({$,esc,toast,modal,close,guarded,requireProfile,createStory,getUser:()=>user,getView:()=>view,result,db,uploadMediaPost,searchUsers,onPublished:async target=>{const next=['theory','chapters','episodes','feed'].includes(target)?target:view;view=next;const path=sectionPath[next]||'/';if(location.pathname!==path)history.pushState({view:next},'',path);await load();}});
-async function uploadPost(file,post){if(post.kind==='story')authorStoryCache.clear();await validateMedia(file,post.kind==='story'?60:300);const allowed=['image/jpeg','image/png','image/webp','video/mp4','video/webm'];if(!allowed.includes(file.type))throw Error('Choose a JPG, PNG, WebP, MP4, or WebM file.');if(file.size>10485760)throw Error('Keep uploads under 10 MB for this beta.');const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm'}[file.type];const path=`${user.id}/${crypto.randomUUID()}.${ext}`;await uploadWithProgress({db,url:SUPABASE_URL,key:SUPABASE_KEY,path,file,onProgress:fraction=>toast('Uploading '+Math.round(fraction*100)+'%…')});let uploaded;try{uploaded=await result(db.from('posts').insert({...post,ai_review_consent:false,media_path:path,media_type:file.type.startsWith('image/')?'image':'video'}).select('id').single());await result(db.rpc('publish_upload',{target:uploaded.id}));}catch(e){if(uploaded)await db.from('posts').delete().eq('id',uploaded.id).eq('author',user.id);await db.storage.from('community-media').remove([path]);throw e;}}
+const compose=createComposer({$,esc,toast,modal,close,guarded,requireProfile,createStory,getUser:()=>user,getUsername:()=>me?.username||'',getView:()=>view,result,db,uploadMediaPost,searchUsers,onPublished:async target=>{const next=['theory','chapters','episodes','feed'].includes(target)?target:view;view=next;const path=sectionPath[next]||'/';if(location.pathname!==path)history.pushState({view:next},'',path);await load();}});
+async function uploadPost(file,post){file=coerceMediaFile(file);if(post.kind==='story')authorStoryCache.clear();await validateMedia(file,60);const allowed=['image/jpeg','image/png','image/webp','video/mp4','video/webm','video/quicktime'];const kind=mediaBaseType(file.type);if(!allowed.includes(kind))throw Error('Choose a JPG, PNG, WebP, MP4, MOV, or WebM file.');if(file.size>10485760)throw Error('Keep uploads under 10 MB for this beta.');const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov'}[kind];const path=`${user.id}/${crypto.randomUUID()}.${ext}`;const overlays=kind.startsWith('video/')?cleanOverlays(post.overlays):[];const {overlays:ignoredOverlays,...row}={...post,ai_review_consent:false,media_path:path,media_type:kind.startsWith('image/')?'image':'video'};void ignoredOverlays;if(overlays.length)row.media_overlays={[path]:overlays};await uploadWithProgress({db,url:SUPABASE_URL,key:SUPABASE_KEY,path,file,onProgress:fraction=>toast('Uploading '+Math.round(fraction*100)+'%…')});let uploaded;try{const outcome=await insertPost(row,[]);uploaded=outcome.row;if(outcome.overlaysDropped){const baked=await framePoster(file,overlays);if(baked){const posterPath=path+'.poster.jpg';try{await uploadWithProgress({db,url:SUPABASE_URL,key:SUPABASE_KEY,path:posterPath,file:baked,onProgress:()=>{}});await result(db.from('posts').update({media_posters:{[path]:posterPath}}).eq('id',uploaded.id));toast('Text and stickers were saved on the preview image. Live overlays need the media_overlays column.');}catch{toast('Text and stickers could not be stored on this video yet. The video was posted without them.');}}else toast('Text and stickers could not be stored on this video yet. The video was posted without them.');}await result(db.rpc('publish_upload',{target:uploaded.id}));}catch(e){if(uploaded)await db.from('posts').delete().eq('id',uploaded.id).eq('author',user.id);await db.storage.from('community-media').remove([path]);throw e;}}
 function report(id){if(!requireProfile())return;modal('<h2>Report this post</h2><form id="report-form"><label>What’s wrong?<select id="reason"><option>Nudity or explicit content</option><option>Harassment or hate</option><option>Missing spoiler warning</option><option>Stolen content</option><option>Spam</option></select></label><button class="primary">Send report</button></form>');$('#report-form').onsubmit=guarded(async()=>{await result(db.from('reports').insert({reporter:user.id,post_id:id,reason:$('#reason').value}));close();toast('Report submitted for review.');});}
 async function editPost(id){if(!requireProfile())return;const p=await result(db.from('posts').select('*').eq('id',id).eq('author',user.id).single());modal(`<h2>Edit post</h2><form id="edit-post-form"><label>Title<input id="edit-title" maxlength="120" value="${esc(p.title)}"></label><label>Post<textarea id="edit-body" maxlength="5000" required>${esc(p.body)}</textarea></label>${p.kind==='reaction'?`<label>${p.medium==='anime'?'Episode':'Chapter'}<input id="edit-episode" type="number" min="1" max="100000" value="${p.episode||''}" required></label>`:''}<label class="check"><input id="edit-spoiler" type="checkbox" ${p.spoiler?'checked':''}> Contains spoilers</label><button class="primary">Save changes</button></form>`);$('#edit-post-form').onsubmit=guarded(async()=>{await result(db.rpc('edit_post',{target:id,new_title:$('#edit-title').value,new_body:$('#edit-body').value,new_spoiler:$('#edit-spoiler').checked,new_episode:Number($('#edit-episode')?.value)||null}));close();toast('Post updated.');await refreshCurrent();});}
 function deletePost(id){modal('<h2>Delete this post?</h2><p>The post, comments, and likes will be removed.</p><button id="confirm-delete" class="primary">Delete post</button>');$('#confirm-delete').onclick=guarded(async()=>{const p=await result(db.from('posts').select('*').eq('id',id).eq('author',user.id).single());const attachments=await result(db.from('post_media').select('path').eq('post_id',id));await result(db.from('posts').delete().eq('id',id).eq('author',user.id));if(p.kind==='story')authorStoryCache.clear();if(p?.media_path)await db.storage.from('community-media').remove([p.media_path,...attachments.map(a=>a.path)]);close();toast('Post deleted.');await load();});}
@@ -298,37 +299,29 @@ try{
  else await maybeResumeCreate();
 }catch(e){bootstrapping=false;fail(e);}
 
-async function capturePoster(file){
- if(!String(file.type||'').startsWith('video/'))return null;
- const url=URL.createObjectURL(file),video=document.createElement('video');
- video.muted=true;video.playsInline=true;video.preload='auto';
- try{
-  await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('timeout')),8000);video.onloadeddata=()=>{clearTimeout(timer);resolve();};video.onerror=()=>{clearTimeout(timer);reject(Error('unreadable'));};video.src=url;});
-  const width=video.videoWidth,height=video.videoHeight;if(!width||!height)return null;
-  const scale=Math.min(1,960/Math.max(width,height)),canvas=document.createElement('canvas');
-  canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
-  canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
-  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.8));
-  return blob&&blob.size?new File([blob],'poster.jpg',{type:'image/jpeg'}):null;
- }catch{return null;}
- finally{video.removeAttribute('src');video.load();URL.revokeObjectURL(url);}
-}
-function missingMediaColumns(error){return /media_ratio|media_posters|PGRST204|42703|schema cache/i.test(String(error?.message||'')+' '+String(error?.details||'')+' '+String(error?.code||''));}
+function missingMediaColumns(error){return /media_ratio|media_posters|media_overlays|PGRST204|42703|schema cache/i.test(String(error?.message||'')+' '+String(error?.details||'')+' '+String(error?.code||''));}
 async function insertPost(row,posterPaths){
- try{return await result(db.from('posts').insert(row).select('id').single());}
+ const insert=payload=>result(db.from('posts').insert(payload).select('id').single());
+ try{return {row:await insert(row),overlaysDropped:false};}
  catch(error){
   if(!missingMediaColumns(error))throw error;
+  if(row.media_overlays){
+   const {media_overlays,...kept}=row;
+   try{return {row:await insert(kept),overlaysDropped:true};}
+   catch(again){if(!missingMediaColumns(again))throw again;}
+  }
   if(posterPaths.length)await db.storage.from('community-media').remove(posterPaths).catch(()=>{});
-  const {media_ratio,media_posters,...rest}=row;
-  return await result(db.from('posts').insert(rest).select('id').single());
+  const {media_ratio,media_posters,media_overlays,...rest}=row;
+  return {row:await insert(rest),overlaysDropped:Boolean(row.media_overlays)};
  }
 }
 async function uploadMediaPost(files,post,onProgress=()=>{}){
- for(const file of files)await validateMedia(file,300);
+ files=files.map(coerceMediaFile);
+ for(const file of files)await validateMedia(file,60);
  if(['story','avatar'].includes(post.kind)&&files.length>1)throw Error('Stories and profile pictures use one attachment.');if(files.length>6)throw Error('Choose up to 6 attachments.');
- const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm'};
- for(const file of files){const kind=mediaBaseType(file.type);if(!types[kind]||file.size>10485760)throw Error('Each attachment must be JPG, PNG, WebP, MP4, or WebM and under 10 MB.');}
- const paths=[],attempted=[],posters={};let inserted=null,uploadedBytes=0;const totalBytes=files.reduce((sum,file)=>sum+file.size,0)||1;
+ const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov'};
+ for(const file of files){const kind=mediaBaseType(file.type);if(!types[kind]||file.size>10485760)throw Error('Each attachment must be JPG, PNG, WebP, MP4, MOV, or WebM and under 10 MB.');}
+ const paths=[],attempted=[],posters={},overlayMap={};let inserted=null,uploadedBytes=0;const totalBytes=files.reduce((sum,file)=>sum+file.size,0)||1;
  try{
   for(let i=0;i<files.length;i++){
    const file=files[i],kind=mediaBaseType(file.type),path=user.id+'/'+crypto.randomUUID()+'.'+types[kind];
@@ -337,15 +330,31 @@ async function uploadMediaPost(files,post,onProgress=()=>{}){
    await uploadWithProgress({db,url:SUPABASE_URL,key:SUPABASE_KEY,path,file,onProgress:fraction=>onProgress((uploadedBytes+fraction*file.size)/totalBytes)});
    uploadedBytes+=file.size;
    const media_type=kind.startsWith('image/')?'image':'video';
-   paths.push({path,media_type});
+   paths.push({path,media_type,overlays:media_type==='video'?cleanOverlays(file.fictionOverlays):[]});
    if(media_type==='video'){
-    const poster=await capturePoster(file);
+    const savedOverlays=paths[paths.length-1].overlays;
+    if(savedOverlays.length)overlayMap[path]=savedOverlays;
+    const poster=await framePoster(file);
     if(poster){const posterPath=path+'.poster.jpg';try{await uploadWithProgress({db,url:SUPABASE_URL,key:SUPABASE_KEY,path:posterPath,file:poster,onProgress:()=>{}});attempted.push(posterPath);posters[path]=posterPath;}catch{/* The video still plays from its first frame. */}}
    }
   }
   const posterPaths=Object.values(posters);
-  inserted=await insertPost({...post,ai_review_consent:false,media_path:paths[0].path,media_type:paths[0].media_type,...(posterPaths.length?{media_posters:posters}:{})},posterPaths);
-  if(paths.length>1)await result(db.from('post_media').insert(paths.slice(1).map((item,index)=>({...item,post_id:inserted.id,position:index+1}))));
+  const outcome=await insertPost({...post,ai_review_consent:false,media_path:paths[0].path,media_type:paths[0].media_type,...(posterPaths.length?{media_posters:posters}:{}),...(Object.keys(overlayMap).length?{media_overlays:overlayMap}:{})},posterPaths);
+  inserted=outcome.row;
+  if(outcome.overlaysDropped){
+   let baked=false;
+   for(const item of paths){
+    if(!item.overlays.length)continue;
+    const source=files[paths.indexOf(item)];
+    const poster=await framePoster(source,item.overlays);
+    if(!poster)continue;
+    const posterPath=item.path+'.overlay.jpg';
+    try{await uploadWithProgress({db,url:SUPABASE_URL,key:SUPABASE_KEY,path:posterPath,file:poster,onProgress:()=>{}});posters[item.path]=posterPath;baked=true;}catch{/* Keep the plain poster. */}
+   }
+   if(baked){try{await result(db.from('posts').update({media_posters:posters}).eq('id',inserted.id));}catch{baked=false;}}
+   toast(baked?'Text and stickers were saved on the preview image. Live overlays need the media_overlays column.':'Text and stickers could not be stored on this video yet. The video was posted without them.');
+  }
+  if(paths.length>1)await result(db.from('post_media').insert(paths.slice(1).map((item,index)=>({path:item.path,media_type:item.media_type,post_id:inserted.id,position:index+1}))));
   await result(db.rpc('publish_upload',{target:inserted.id}));
  }catch(error){if(inserted)await db.from('posts').delete().eq('id',inserted.id).eq('author',user.id);if(attempted.length)await db.storage.from('community-media').remove(attempted);throw error;}
 }
@@ -435,7 +444,7 @@ function bindProfileTabs(id,own){
 }
 function profileTile(post,pack){
  const stats=pack?.stats||{},url=!community.spoiler(post)?pack?.urls?.[post.media_path]:null;
- return `<div class="profile-tile" data-type="${post.kind==='theory'?'theory':post.kind==='reaction'&&post.medium==='manga'?'chapters':post.kind==='reaction'?'episodes':'post'}"><button type="button" class="profile-thumbnail" data-saved-post="${post.id}" aria-label="Open ${esc(post.title||post.series||'saved post')}">${postTypeBadge(post)}${community.spoiler(post)?'<span class="tile-text">Spoilers<br>Tap to reveal</span>':url?(post.media_type==='video'?`<video muted preload="metadata" src="${esc(url)}"></video><span class="tile-kind">▶</span>`:`<img loading="lazy" src="${esc(url)}" alt="${esc(post.title||post.series||'Saved photo')}">`):`<span class="tile-text">${esc((post.title||post.body||'').slice(0,90))}</span>`}</button><div class="tile-stats"><span>♡ ${stats.likes||0}</span></div></div>`;
+ const posterPath=post.media_posters?.[post.media_path],poster=posterPath?pack?.urls?.[posterPath]:'';return `<div class="profile-tile" data-type="${post.kind==='theory'?'theory':post.kind==='reaction'&&post.medium==='manga'?'chapters':post.kind==='reaction'?'episodes':'post'}"><button type="button" class="profile-thumbnail" data-saved-post="${post.id}" aria-label="Open ${esc(post.title||post.series||'saved post')}">${postTypeBadge(post)}${community.spoiler(post)?'<span class="tile-text">Spoilers<br>Tap to reveal</span>':url?(post.media_type==='video'?`<video muted playsinline webkit-playsinline preload="metadata" ${poster?`poster="${esc(poster)}"`:''} src="${esc(frameUrl(url))}"></video><span class="tile-kind">▶</span>`:`<img loading="lazy" src="${esc(url)}" alt="${esc(post.title||post.series||'Saved photo')}">`):`<span class="tile-text">${esc((post.title||post.body||'').slice(0,90))}</span>`}</button><div class="tile-stats"><span>♡ ${stats.likes||0}</span></div></div>`;
 }
 async function loadSavedGrid(request){
  const button=$('#more-saved-grid');
@@ -485,7 +494,7 @@ async function paintExplore(query,request){
  const followsPromise=loadAffinity();
  const peoplePromise=(async()=>{let people=[];if(user&&engagementReady){try{people=(await result(db.rpc('creator_suggestions'))||[]).filter(showcaseProfile);}catch{people=[];}}if(!people.length){try{people=await result(db.from('profiles').select('id,username,display_name,avatar_path,is_private,favorites').eq('account_suspended',false).order('username').limit(24));}catch{try{people=await result(db.from('profiles').select('id,username,display_name,avatar_path,is_private').order('username').limit(24));}catch{people=[];}}people=people.filter(showcaseProfile);}return people.slice(0,8);})();
  let exploreColumns=true,personalized=false;
- const exploreSelect=()=>exploreColumns?'id,title,body,series,medium,kind,episode,media_path,media_type,media_ratio,media_posters,spoiler,author,created_at,profiles!posts_author_fkey(username,display_name,avatar_path)':'id,title,body,series,medium,kind,episode,media_path,media_type,spoiler,author,created_at,profiles!posts_author_fkey(username,display_name,avatar_path)';
+ const exploreSelect=()=>exploreColumns?'id,title,body,series,medium,kind,episode,media_path,media_type,media_ratio,media_posters,media_overlays,spoiler,author,created_at,profiles!posts_author_fkey(username,display_name,avatar_path)':'id,title,body,series,medium,kind,episode,media_path,media_type,spoiler,author,created_at,profiles!posts_author_fkey(username,display_name,avatar_path)';
  const base=()=>{let built=db.from('posts').select(exploreSelect()).eq('status','approved').not('kind','in','(avatar,story)');if(exploreFilter==='theory')built=built.eq('kind','theory');else if(exploreFilter==='chapters')built=built.eq('kind','reaction').eq('medium','manga');else if(exploreFilter==='episodes')built=built.eq('kind','reaction').eq('medium','anime');else if(!personalized)built=built.not('media_path','is',null);return built;};
  const exploreRows=async build=>{try{return await result(build());}catch(error){if(!exploreColumns||!missingMediaColumns(error))throw error;exploreColumns=false;return await result(build());}};
  const postsPromise=term.length>=2?Promise.all((query.trim().startsWith('#')?['body']:['series','body','title']).map(field=>exploreRows(()=>base().ilike(field,'%'+like+'%').order('created_at',{ascending:false}).limit(24)))):exploreRows(()=>base().order('created_at',{ascending:false}).limit(36)).then(rows=>[rows]);
@@ -519,7 +528,7 @@ async function paintExplore(query,request){
   const dwell=` data-dwell="${post.id}" data-series="${esc(post.series||'')}" data-author="${post.author||''}" data-type="${postTypeKey(post)}" data-tags="${esc(hashtags(post.body).join(' '))}"`;
   const tall=!post.spoiler&&url&&tallSlot++===0?' tall':'';
   if(post.spoiler){const media=url?(post.media_type==='video'?`<video muted playsinline preload="metadata" poster="${esc(url)}" src="${esc(url)}"></video>`:`<img alt="" src="${esc(url)}">`):'';return `<button type="button" class="explore-tile spoiler${url?'':' explore-text'}"${dwell} data-explore-post="${post.id}">${media}<span class="spoiler-label">Spoiler</span></button>`;}
-  if(post.media_type==='video'&&url){const posterPath=post.media_posters?.[post.media_path],poster=posterPath?pack?.urls?.[posterPath]:'';return `<div class="explore-tile${tall}" role="button" tabindex="0"${dwell} data-explore-post="${post.id}"><video muted loop playsinline preload="none" ${poster?`poster="${esc(poster)}"`:''} data-preview="${esc(url)}" data-inline></video><button type="button" class="ig-mute explore-sound" aria-label="Turn on sound" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="m16 10 4 4m0-4-4 4"/></svg></button><span class="tile-reel" aria-hidden="true">▶</span>${stack}${badge}${label?`<span class="explore-tile-label">${label}</span>`:''}</div>`;}
+  if(post.media_type==='video'&&url){const posterPath=post.media_posters?.[post.media_path],poster=posterPath?pack?.urls?.[posterPath]:'';return `<div class="explore-tile${tall}" role="button" tabindex="0"${dwell} data-explore-post="${post.id}"><video muted loop playsinline webkit-playsinline preload="metadata" ${poster?`poster="${esc(poster)}"`:''} src="${esc(frameUrl(url))}" data-inline></video>${overlayHtml(readOverlays(post,post.media_path),esc)}<button type="button" class="ig-mute explore-sound" aria-label="Turn on sound" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="m16 10 4 4m0-4-4 4"/></svg></button><span class="tile-reel" aria-hidden="true">▶</span>${stack}${badge}${label?`<span class="explore-tile-label">${label}</span>`:''}</div>`;}
   if(!url){if(exploreFilter==='foryou'&&!personalized)return '';const title=esc((post.title||post.body||seriesName||'Discussion').replace(/\s+/g,' ').slice(0,90));return `<button type="button" class="explore-tile explore-text"${dwell} data-explore-post="${post.id}">${badge}<span class="tile-text">${title}</span>${label?`<span class="explore-tile-label">${label}</span>`:''}</button>`;}
   return `<button type="button" class="explore-tile${tall}"${dwell} data-explore-post="${post.id}"><img loading="lazy" alt="${label||'Post'}" src="${esc(url)}">${stack}${badge}${label?`<span class="explore-tile-label">${label}</span>`:''}</button>`;
  }).join('');
