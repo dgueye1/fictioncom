@@ -27,7 +27,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="stylesheet" href="styles.css?v=20261127c">
-<link rel="stylesheet" href="instagram.css?v=20261127d">
+<link rel="stylesheet" href="instagram.css?v=20261127e">
 <script src="/analytics.js"></script>
 <script>
 try{
@@ -121,12 +121,12 @@ try{
     </div>
   </div>
   <section id="story-strip" class="story-strip" aria-label="Stories"></section>
-  <nav id="feed-tabs" class="feed-tabs" aria-label="Feed sections" hidden>
-    <button type="button" data-feed="feed" aria-selected="true">For you</button>
-    <button type="button" data-feed="theory">Theories</button>
-    <button type="button" data-feed="chapters">Chapter reviews</button>
-    <button type="button" data-feed="episodes">Episode reviews</button>
-  </nav>
+  <nav id="feed-tabs" class="feed-tabs" hidden><div class="feed-tabs-scroll" role="tablist" aria-label="Feed sections">
+    <button type="button" data-feed="feed" aria-selected="true"><span class="tab-long">For you</span><span class="tab-short">For you</span></button>
+    <button type="button" data-feed="theory"><span class="tab-long">Theories</span><span class="tab-short">Theories</span></button>
+    <button type="button" data-feed="chapters"><span class="tab-long">Chapter reviews</span><span class="tab-short">Chapters</span></button>
+    <button type="button" data-feed="episodes"><span class="tab-long">Episode reviews</span><span class="tab-short">Episodes</span></button>
+  </div></nav>
   <div class="create-row"><p class="small">Browse freely. Sign in to join the conversation.</p><button id="compose" class="primary" type="button">Create</button></div>
   <div id="intro" class="intro" hidden><span class="intro-symbol">✦</span><div><strong>Find your people between episodes.</strong><p>Share a photo, a theory, or the chapter you can’t stop thinking about.</p></div></div>
   <form id="filters" class="filters">
@@ -190,6 +190,6 @@ try{
 <div id="toast" role="status"></div>
 <footer class="public-footer"><a href="privacy.html">Privacy</a><a href="terms.html">Terms &amp; rules</a><button id="public-support" type="button">Support</button><button id="public-feedback" type="button">Feedback</button><span>For fans age 14 and up</span></footer>
 <script type="module" src="monitoring.js"></script>
-<script type="module" src="app.js?v=20261127c"></script>
+<script type="module" src="app.js?v=20261127e"></script>
 </body>
 </html>
