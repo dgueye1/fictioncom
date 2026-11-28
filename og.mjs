@@ -3,7 +3,7 @@ const DEFAULT_DESCRIPTION='Share your anime world. Photos, theories, and episode
 
 export function isAppRoute(pathname){
   const path=pathname.replace(/\/+$/,'')||'/';
-  return path==='/'||path==='/feed'||path==='/explore'||path==='/theories'||path==='/chapters'||path==='/episodes'||path==='/chat'||/^\/p\/[0-9a-f-]{36}$/i.test(path)||/^\/u\/[a-z0-9_]{3,24}$/i.test(path)||/^\/series\/[^/]+$/.test(path);
+  return path==='/'||path==='/feed'||path==='/explore'||path==='/theories'||path==='/chapters'||path==='/episodes'||path==='/chat'||/^\/p\/[0-9a-f-]{36}$/i.test(path)||/^\/u\/[a-z0-9_]{3,24}$/i.test(path)||/^\/series\/[^/]+$/.test(path)||/^\/series\/[^/]+\/(chapter|episode)\/\d+$/.test(path)||/^\/tag\/(character|arc)\/[^/]+$/.test(path);
 }
 
 function escapeAttr(value){
@@ -39,7 +39,9 @@ export async function applyOpenGraph(html,url,{fetchImpl=fetch,supabaseUrl,supab
   try{
     const post=url.pathname.match(/^\/p\/([0-9a-f-]{36})$/i);
     const person=url.pathname.match(/^\/u\/([a-z0-9_]{3,24})$/i);
+    const drop=url.pathname.match(/^\/series\/([^/]+)\/(chapter|episode)\/(\d+)$/);
     const series=url.pathname.match(/^\/series\/([^/]+)$/);
+    const tag=url.pathname.match(/^\/tag\/(character|arc)\/([^/]+)$/);
     if(post&&supabaseUrl&&supabaseKey){
       const row=await supabaseGet(fetchImpl,supabaseUrl,supabaseKey,'posts',`id=eq.${post[1]}&status=eq.approved&select=title,body,series,kind,profiles!posts_author_fkey(username,display_name)`);
       if(row){
@@ -52,6 +54,14 @@ export async function applyOpenGraph(html,url,{fetchImpl=fetch,supabaseUrl,supab
         meta.title=clip(`${row.display_name} (@${row.username}) · FictionCom`,90);
         meta.description=clip(row.bio,180)||`See @${row.username} on FictionCom.`;
       }
+    }else if(drop){
+      const title=decodeURIComponent(drop[1]);
+      meta.title=clip(`${title} · ${drop[2]==='chapter'?'Ch.':'Ep.'} ${drop[3]} · FictionCom`,90);
+      meta.description=`Discussion for ${title} ${drop[2]} ${drop[3]} on FictionCom.`;
+    }else if(tag){
+      const name=decodeURIComponent(tag[2]);
+      meta.title=clip(`${name} · ${tag[1]==='arc'?'Arc':'Character'} · FictionCom`,90);
+      meta.description=`Posts tagged ${name} on FictionCom.`;
     }else if(series){
       const title=decodeURIComponent(series[1]);
       const medium=url.searchParams.get('medium')==='manga'?'Manga':'Anime';

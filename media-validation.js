@@ -91,16 +91,60 @@ export async function prepareMediaFile(file){
  if(ready.size>MEDIA_LIMIT)throw Error(mediaLimitMessage(ready,type));
  return ready;
 }
-export async function validateMedia(file,maxSeconds){
+export async function validateMedia(file,maxSeconds=60){
  const type=mediaBaseType(file.type);
  if(!type)throw Error('This file has no type the browser can read. Choose a JPG, PNG, WebP, HEIC, MP4, WebM, or MOV.');
  if(type==='image/heic')throw Error('This iPhone photo could not be converted to JPEG. Try another photo.');
  if(type==='video/quicktime')throw Error('This iPhone video could not be prepared. Try a shorter clip, or set Camera → Formats to Most Compatible.');
  if(!ALLOWED.includes(type))throw Error('Choose a JPG, PNG, WebP, HEIC, MP4, WebM, or MOV file.');
  if(file.size>MEDIA_LIMIT)throw Error(mediaLimitMessage(file,type));
- if(!type.startsWith('video/'))return;
+ if(!type.startsWith('video/'))return file;
  const url=URL.createObjectURL(file),video=document.createElement('video');video.preload='metadata';
- try{await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Unable to read this video. Try another file.')),15000);video.onloadedmetadata=()=>{clearTimeout(timer);resolve()};video.onerror=()=>{clearTimeout(timer);reject(Error('This video cannot be played. Try MP4 or a Most Compatible iPhone video.'))};video.src=url});if(!Number.isFinite(video.duration)||video.duration<=0)throw Error('Unable to determine video length.');if(video.duration>maxSeconds)throw Error('Videos must be '+(maxSeconds===60?'60 seconds':'5 minutes')+' or shorter.');}finally{video.removeAttribute('src');video.load();URL.revokeObjectURL(url)}
+ try{await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Unable to read this video. Try another file.')),15000);video.onloadedmetadata=()=>{clearTimeout(timer);resolve()};video.onerror=()=>{clearTimeout(timer);reject(Error('This video cannot be played. Try MP4 or a Most Compatible iPhone video.'))};video.src=url});if(!Number.isFinite(video.duration)||video.duration<=0)throw Error('Unable to determine video length.');if(video.duration>maxSeconds){
+    let trimmed=null;try{trimmed=await offerTrim(file,maxSeconds);}catch{trimmed=null;}
+    if(!trimmed)throw Error('Videos can be up to 60 seconds.');
+    if(trimmed.size>MEDIA_LIMIT)throw Error(mediaLimitMessage(trimmed,trimmed.type));
+    return trimmed;
+   }
+   return file;
+  }finally{video.removeAttribute('src');video.load();URL.revokeObjectURL(url)}
+}
+async function offerTrim(file,seconds){
+ const canTrim=typeof HTMLVideoElement!=='undefined'&&typeof HTMLVideoElement.prototype.captureStream==='function'&&typeof MediaRecorder!=='undefined';
+ if(!canTrim||typeof confirm!=='function'||!confirm('This video is longer than 60 seconds. Keep the first 60 seconds?'))return null;
+ try{return await trimVideo(file,seconds);}catch{return null;}
+}
+function trimVideo(file,seconds){
+ const url=URL.createObjectURL(file),video=document.createElement('video');
+ video.preload='auto';video.playsInline=true;
+ return new Promise((resolve,reject)=>{
+  const fail=error=>{cleanup();reject(error);};
+  const cleanup=()=>{video.onloadedmetadata=null;video.ontimeupdate=null;video.onerror=null;video.pause();video.removeAttribute('src');video.load();URL.revokeObjectURL(url);};
+  const timer=setTimeout(()=>fail(Error('trim')),(seconds+8)*1000);
+  video.onerror=()=>fail(Error('trim'));
+  video.onloadedmetadata=async()=>{
+   try{
+    const stream=video.captureStream();
+    const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')?'video/webm;codecs=vp8,opus':MediaRecorder.isTypeSupported('video/webm')?'video/webm':'';
+    if(!mime)throw Error('trim');
+    const rec=new MediaRecorder(stream,{mimeType:mime});
+    const chunks=[];
+    rec.ondataavailable=event=>{if(event.data?.size)chunks.push(event.data);};
+    rec.onerror=()=>fail(Error('trim'));
+    const stopped=new Promise(done=>{rec.onstop=()=>done();});
+    rec.start();
+    video.ontimeupdate=()=>{if(video.currentTime>=seconds){video.pause();if(rec.state!=='inactive')rec.stop();}};
+    await video.play();
+    await stopped;
+    clearTimeout(timer);
+    const blob=new Blob(chunks,{type:'video/webm'});
+    cleanup();
+    if(!blob.size){resolve(null);return;}
+    resolve(new File([blob],(String(file.name||'video').replace(/\.[^.]+$/,'')||'video')+'.webm',{type:'video/webm',lastModified:Date.now()}));
+   }catch(error){clearTimeout(timer);fail(error);}
+  };
+  video.src=url;
+ });
 }
 
 // Native file capture has no permission-free hardware probe. Be conservative:
@@ -110,7 +154,7 @@ export function configureCaptureButtons(photoButton,videoButton,photoInput,video
  for(const [button,input] of [[photoButton,photoInput],[videoButton,videoInput]]){
   const supported=mobile&&'capture' in input;
   button.disabled=!supported;
-  button.title=supported?'':'Camera capture is unavailable in this browser. Choose an existing photo or video instead.';
+  button.title=supported?(button===videoButton?'Videos can be up to 60 seconds.':''):'Camera capture is unavailable in this browser. Choose an existing photo or video instead.';
   if(!supported){let hint=button.parentElement.nextElementSibling;if(!hint?.classList.contains('capture-unavailable')){hint=document.createElement('p');hint.className='small capture-unavailable';hint.textContent='Camera capture is unavailable here. You can still upload photos and videos.';button.parentElement.insertAdjacentElement('afterend',hint);}button.setAttribute('aria-describedby',hint.id||(hint.id=photoButton.id+'-unavailable'));}
  }
 }
