@@ -54,8 +54,19 @@ async function serveDocument(request,env){
   if(asset.status!==404)return asset;
   return new Response('Not found',{status:404,headers:{'X-Content-Type-Options':'nosniff'}});
  }
- const index=await env.ASSETS.fetch(new Request(new URL('/index.html',url.origin),request));
- if(!index.ok)return new Response('Not found',{status:index.status,headers:{'X-Content-Type-Options':'nosniff'}});
+ const headers=new Headers(request.headers);
+ headers.delete('if-none-match');headers.delete('if-modified-since');
+ const loadAsset=async path=>{
+  const response=await env.ASSETS.fetch(new Request(new URL(path,url.origin),{method:'GET',headers,redirect:'manual'}));
+  if(response.status>=300&&response.status<400){
+   const next=response.headers.get('location');
+   if(next)return env.ASSETS.fetch(new Request(new URL(next,url.origin),{method:'GET',headers,redirect:'manual'}));
+  }
+  return response;
+ };
+ let index=await loadAsset('/');
+ if(!index.ok)index=await loadAsset('/index.html');
+ if(!index.ok)return new Response('Not found',{status:index.status===308?404:index.status,headers:{'X-Content-Type-Options':'nosniff'}});
  const html=await applyOpenGraph(await index.text(),url,{supabaseUrl:SUPABASE_URL,supabaseKey:SUPABASE_KEY});
  return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'}});
 }
