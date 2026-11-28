@@ -129,14 +129,22 @@ try{
     <button type="button" data-feed="chapters">Chapter reviews</button>
     <button type="button" data-feed="episodes">Episode reviews</button>
   </nav>
+  <div id="feed-chips" class="feed-chips" hidden>
+    <button type="button" id="open-feed-filter">Series</button>
+    <button type="button" id="feed-series-chip" class="feed-series-chip" hidden></button>
+  </div>
   <div class="create-row"><p class="small">Browse freely. Sign in to join the conversation.</p><button id="compose" class="primary" type="button">Create</button></div>
-  <div id="intro" class="intro" hidden><span class="intro-symbol">✦</span><div><strong>Find your people between episodes.</strong><p>Share a photo, a theory, or the chapter you can’t stop thinking about.</p></div></div>
-  <form id="filters" class="filters">
-    <label>Series<input id="series-filter" placeholder="All anime & manga" maxlength="100"></label>
-    <button class="quiet" type="submit">Filter</button>
-    <button id="clear-series" type="button" class="quiet">Clear</button>
-    <label class="sort-label">Sort<select id="discussion-sort"><option value="recommended">For you</option><option value="top" hidden>Top</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="episode-asc">Episode / chapter: low to high</option><option value="episode-desc">Episode / chapter: high to low</option></select></label>
-  </form>
+  <div id="intro" class="intro intro-slim" hidden><p>Find your people between episodes.</p><button type="button" id="intro-dismiss" aria-label="Dismiss">×</button></div>
+  <div id="feed-filter-sheet" class="mini-sheet" hidden>
+    <button type="button" id="feed-filter-backdrop" class="mini-sheet-backdrop" aria-label="Close series filter"></button>
+    <form id="filters" class="filters mini-sheet-card">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <h3>Series</h3>
+      <label>Series<input id="series-filter" placeholder="Search anime or manga" maxlength="100"></label>
+      <label class="sort-label">Sort<select id="discussion-sort"><option value="recommended">For you</option><option value="top" hidden>Top</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="episode-asc">Episode / chapter: low to high</option><option value="episode-desc">Episode / chapter: high to low</option></select></label>
+      <div class="form-actions"><button class="primary" type="submit">Apply</button><button id="clear-series" type="button">Clear</button></div>
+    </form>
+  </div>
   <div class="community-tools"><button id="series-page" type="button" hidden>View series page</button></div>
   <div id="content" aria-live="polite"></div>
 </main>

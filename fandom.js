@@ -21,6 +21,21 @@ function missing(error){
   const msg=String(error.message||'').toLowerCase();
   return code==='42P01'||code==='PGRST205'||code==='PGRST202'||code==='42883'||msg.includes('schema cache')||msg.includes('could not find')||msg.includes('does not exist');
 }
+function withTimeout(promise, ms, fallback){
+  return Promise.race([promise, new Promise(resolve=>setTimeout(()=>resolve(fallback), ms))]);
+}
+async function kitsuDirect(title, medium){
+  const url=new URL('https://kitsu.io/api/edge/'+(medium==='manga'?'manga':'anime'));
+  url.search=new URLSearchParams({'filter[text]':title,'page[limit]':'5'});
+  const response=await fetch(url,{headers:{Accept:'application/vnd.api+json'},signal:AbortSignal.timeout(4000)});
+  if(!response.ok)return [];
+  const json=await response.json();
+  return (json.data||[]).map(row=>{
+    const a=row.attributes||{};
+    const japanese=a.titles?.ja_jp||a.titles?.ja||null;
+    return {title:a.canonicalTitle,medium:medium==='manga'?'manga':'anime',english:a.titles?.en||null,japanese:japanese&&japanese!==a.canonicalTitle?japanese:null,cover:a.posterImage?.small||a.posterImage?.medium||null,episodes:a.episodeCount||null,chapters:a.chapterCount||null};
+  }).filter(row=>row.title);
+}
 function weekStart(){
   const now=new Date();
   const day=now.getUTCDay()||7;
@@ -259,18 +274,41 @@ export function createFandom({db,$,esc,result,toast,fail,guarded,requireProfile,
     const host=$('#content');
     if(!host)return;
     $('#view-title').textContent=title;
-    host.innerHTML='<section class="series-hub" aria-busy="true"><div class="series-hero"><div class="series-cover skeleton-block"></div><div class="series-hero-copy"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div></div><div class="series-columns"><div class="skeleton-block tall"></div><div class="skeleton-block tall"></div></div></section>';
-    const ready=await caps();
+    host.innerHTML=`<section class="series-hub"><header class="series-hero"><div class="series-cover series-cover-fallback" aria-hidden="true">${esc(title.slice(0,1))}</div><div class="series-hero-copy"><h2>${esc(title)}</h2></div></header><button type="button" id="series-follow" class="primary series-follow">Follow series</button><div class="series-stats"><span><strong>0</strong> posts</span><span><strong>0</strong> followers</span></div><button type="button" class="series-progress-row" disabled><span>Your progress</span><strong>Set</strong></button><div class="series-tabs" role="tablist"><button type="button" aria-selected="true">Posts</button><button type="button">Theories</button><button type="button">Reviews</button><button type="button">Threads</button></div><p class="series-empty">No posts yet.</p></section>`;
+    const ready=await withTimeout(caps(), 2500, {drops:false,extras:false,polls:false});
     const postQuery=db.from('posts').select('id,title,body,kind,episode,spoiler,author,created_at,medium,series,media_path,media_type,profiles!posts_author_fkey(username,display_name)').eq('series',title).eq('medium',medium).in('kind',['theory','reaction']).eq('status','approved').order('created_at',{ascending:false}).limit(60);
-    const catalogPromise=searchCatalog(title,medium).catch(()=>[]);
-    const [postResult,fans,summary,polls,mine]=await Promise.all([
+    const catalogPromise=Promise.any([
+      searchCatalog(title,medium).then(rows=>rows?.length?rows:Promise.reject()).catch(()=>kitsuDirect(title,medium)),
+      kitsuDirect(title,medium).then(rows=>rows?.length?rows:Promise.reject())
+    ]).catch(()=>[]);
+    function applyCatalog(rows){
+      if(!current()||!host.isConnected)return;
+      const found=(rows||[]).find(row=>row.title?.toLowerCase()===title.toLowerCase()&&row.medium===medium)||(rows||[])[0];
+      if(!found)return;
+      const cover=host.querySelector('.series-cover');
+      if(found.cover&&cover&&cover.tagName!=='IMG')cover.outerHTML=`<img class="series-cover" src="${esc(found.cover)}" alt="" loading="lazy">`;
+      else if(found.cover&&cover)cover.src=found.cover;
+      const jp=found.japanese&&found.japanese!==title?found.japanese:'';
+      if(jp&&!host.querySelector('.series-jp'))host.querySelector('.series-hero-copy h2')?.insertAdjacentHTML('afterend','<p class="series-jp" lang="ja">'+esc(jp)+'</p>');
+      const count=Number(medium==='manga'?found.chapters:found.episodes);
+      const input=$('#series-progress-input');
+      if(input&&count>0){input.max=String(count);const note=input.closest('form')?.querySelector('.small');if(note)note.textContent='Up to '+count+'. Posts past this stay blurred until you tap them.';}
+    }
+    const loaded=await withTimeout(Promise.all([
       postQuery.then(response=>response.error?db.from('posts').select('id,title,body,kind,episode,spoiler,author,created_at,medium,series,media_path,media_type').eq('series',title).eq('medium',medium).in('kind',['theory','reaction']).order('created_at',{ascending:false}).limit(60):response),
       ready.drops||true?optional(()=>db.rpc('series_fans',{p_series:title,p_medium:medium})):null,
       ready.extras?optional(()=>db.rpc('series_score_summary',{p_series:title,p_medium:medium})):null,
       ready.polls?optional(()=>db.from('polls').select('post_id,question,options,week_start').eq('series',title).eq('medium',medium).eq('week_start',weekStart()).limit(1)):null,
       uid()?optional(()=>db.from('series_follows').select('progress').eq('user_id',uid()).eq('series',title).eq('medium',medium).maybeSingle()):null
-    ]);
+    ]), 4000, null);
     if(!current())return;
+    if(!loaded){
+      catalogPromise.then(rows=>applyCatalog(rows)).catch(()=>{});
+      const note=host.querySelector('.series-empty');
+      if(note)note.textContent='No posts yet.';
+      return;
+    }
+    const [postResult,fans,summary,polls,mine]=loaded;
     const posts=postResult.data||[];
     const earlyCatalog=item.cover||item.japanese?item:{};
     const match=earlyCatalog;
@@ -297,11 +335,12 @@ export function createFandom({db,$,esc,result,toast,fail,guarded,requireProfile,
       const label=post.title||(post.episode?unitShort(medium)+' '+post.episode:'Post');
       return `<button type="button" class="series-tile" data-open-series-post="${post.id}" aria-label="${esc(label)}">${url?`<img src="${esc(url)}" alt="" loading="lazy">`:`<span>${esc(String(label).slice(0,42))}</span>`}</button>`;
     }
-    const [postTiles,theoryTiles,reviewTiles]=await Promise.all([
+    const textTile=post=>{const label=post.title||(post.episode?unitShort(medium)+' '+post.episode:'Post');return `<button type="button" class="series-tile" data-open-series-post="${post.id}" aria-label="${esc(label)}"><span>${esc(String(label).slice(0,42))}</span></button>`;};
+    const [postTiles,theoryTiles,reviewTiles]=await withTimeout(Promise.all([
       Promise.all(posts.map(tile)),
       Promise.all(theories.map(tile)),
       Promise.all(reviews.map(tile))
-    ]);
+    ]), 3000, [posts.map(textTile), theories.map(textTile), reviews.map(textTile)]);
     if(!current())return;
     const threadTiles=[...byNumber.keys()].sort((a,b)=>b-a).map(number=>{
       const stat=scoreMap.get(number);
@@ -346,19 +385,7 @@ export function createFandom({db,$,esc,result,toast,fail,guarded,requireProfile,
     host.querySelectorAll('[data-open-series-post]').forEach(button=>button.onclick=()=>openPost(button.dataset.openSeriesPost));
     host.querySelectorAll('[data-open-drop]').forEach(button=>button.onclick=()=>openDrop(title,medium,button.dataset.openDrop));
     host.querySelectorAll('[data-series-fan]').forEach(button=>button.onclick=()=>showProfile(button.dataset.seriesFan));
-    catalogPromise.then(rows=>{
-      if(!current()||!host.isConnected)return;
-      const found=(rows||[]).find(row=>row.title?.toLowerCase()===title.toLowerCase()&&row.medium===medium)||(rows||[])[0];
-      if(!found)return;
-      const cover=host.querySelector('.series-cover');
-      if(found.cover&&cover&&cover.tagName!=='IMG')cover.outerHTML=`<img class="series-cover" src="${esc(found.cover)}" alt="" loading="lazy">`;
-      else if(found.cover&&cover)cover.src=found.cover;
-      const jp=found.japanese&&found.japanese!==title?found.japanese:'';
-      if(jp&&!host.querySelector('.series-jp'))host.querySelector('.series-hero-copy h2')?.insertAdjacentHTML('afterend','<p class="series-jp" lang="ja">'+esc(jp)+'</p>');
-      const count=Number(medium==='manga'?found.chapters:found.episodes);
-      const input=$('#series-progress-input');
-      if(input&&count>0){input.max=String(count);const note=input.closest('form')?.querySelector('.small');if(note)note.textContent='Up to '+count+'. Posts past this stay blurred until you tap them.';}
-    }).catch(()=>{});
+    catalogPromise.then(applyCatalog).catch(()=>{});
   }
 
   async function pageDrop(item,current){
