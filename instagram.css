@@ -664,7 +664,7 @@ body[data-screen="series"] .section-heading,body[data-screen="drop"] .section-he
 }
 
 .series-hub,.drop-thread,.tag-page{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:8px 16px 32px}
-.series-hero{display:flex;flex-direction:row;gap:16px;align-items:center;min-height:128px}
+.series-hero{display:flex;flex-direction:row;gap:16px;align-items:center;height:auto;min-height:0}
 .series-hero-copy{min-width:0;flex:1}
 .series-hero-copy h2{margin:0;font-size:20px;line-height:1.2}
 .series-cover{flex:none;width:96px;height:128px;object-fit:cover;border-radius:8px;background:var(--elev);display:block}
