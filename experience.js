@@ -79,7 +79,11 @@ export function createExperience({db,result,esc,getUser}){
       mediaByPost.get(row.post_id).push(row);
     }
     const paths=[];
-    for(const post of list)if(post.media_path)paths.push(post.media_path);
+    for(const post of list){
+      if(post.media_path)paths.push(post.media_path);
+      const posters=post.media_posters&&typeof post.media_posters==='object'?post.media_posters:{};
+      for(const poster of Object.values(posters))if(poster)paths.push(poster);
+    }
     for(const row of media||[])if(row.path)paths.push(row.path);
     const urls=await signedMap(paths);
     const liked=new Set((likes||[]).map(row=>row.post_id));
@@ -96,10 +100,21 @@ export function createExperience({db,result,esc,getUser}){
     return map;
   }
 
-  function slide(post,item,url,index){
+  function posterFor(post,item,urls){
+    const map=post?.media_posters&&typeof post.media_posters==='object'?post.media_posters:{};
+    const path=map[item?.path];
+    return path&&urls?.[path]?urls[path]:'';
+  }
+  function soundButton(){
+    return '<button type="button" class="ig-mute" aria-label="Turn on sound" aria-pressed="false"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="m16 10 4 4m0-4-4 4"/></svg></button>';
+  }
+  function slide(post,item,url,index,urls){
     if(!url)return '';
     const path=esc(item.path||'');
-    if(item.media_type==='video')return `<div class="carousel-slide"><div class="media-frame"><video class="media" src="${esc(url)}" data-path="${path}" controls playsinline preload="metadata" data-video="${post.id}"></video></div></div>`;
+    if(item.media_type==='video'){
+      const poster=posterFor(post,item,urls);
+      return `<div class="carousel-slide"><div class="media-frame"><video class="media ig-video" src="${esc(url)}" ${poster?`poster="${esc(poster)}"`:''} data-path="${path}" muted playsinline loop preload="metadata" data-inline data-video="${post.id}"></video>${soundButton()}</div></div>`;
+    }
     const alt=index? 'Additional post image' : `Image shared by ${post.profiles?.display_name||'a fan'}`;
     return `<div class="carousel-slide"><div class="media-frame"><img class="media" src="${esc(url)}" data-path="${path}" alt="${esc(alt)}" loading="lazy"></div></div>`;
   }
@@ -107,7 +122,7 @@ export function createExperience({db,result,esc,getUser}){
   function renderMedia(post,ctx){
     if(!post?.media_path||post.kind==='story')return '';
     const items=[{path:post.media_path,media_type:post.media_type},...(ctx?.attachments||[])];
-    const slides=items.map((item,index)=>slide(post,item,ctx?.urls?.[item.path],index)).filter(Boolean);
+    const slides=items.map((item,index)=>slide(post,item,ctx?.urls?.[item.path],index,ctx?.urls)).filter(Boolean);
     if(!slides.length)return '';
     if(slides.length===1)return `<div class="media-stage" data-post-media="${post.id}">${slides[0]}</div>`;
     const dots=slides.map((_,index)=>`<button type="button" class="carousel-dot${index===0?' on':''}" data-go="${index}" aria-label="Show attachment ${index+1} of ${slides.length}"></button>`).join('');
@@ -185,9 +200,67 @@ export function createExperience({db,result,esc,getUser}){
     heart.addEventListener('animationend',()=>heart.remove());
   }
 
+  const soundOn='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7.5a6.5 6.5 0 0 1 0 9"/></svg>';
+  const soundOff='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="m16 10 4 4m0-4-4 4"/></svg>';
+  function syncSound(video){
+    const button=video.closest('.media-frame, .explore-tile')?.querySelector('.ig-mute');
+    if(!button)return;
+    button.innerHTML=video.muted?soundOff:soundOn;
+    button.setAttribute('aria-label',video.muted?'Turn on sound':'Turn off sound');
+    button.setAttribute('aria-pressed',String(!video.muted));
+  }
+  function bindInlineVideos(scope,{onDoubleLike}={}){
+    const host=scope&&scope.querySelectorAll?scope:document;
+    const videos=[...host.querySelectorAll('video[data-inline]')];
+    if(!videos.length)return;
+    const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const saver=navigator.connection?.saveData;
+    const autoplay=!(reduce||saver);
+    const silence=(current)=>{videos.forEach(video=>{if(video!==current&&!video.muted){video.muted=true;syncSound(video);}});};
+    const toggle=(video)=>{
+      if(video.muted){silence(video);video.muted=false;}
+      else video.muted=true;
+      const preview=video.dataset.preview;
+      if(preview&&!video.getAttribute('src'))video.src=preview;
+      if(video.paused)video.play().catch(()=>{});
+      syncSound(video);
+    };
+    videos.forEach(video=>{
+      if(video.dataset.inlineBound==='1')return;
+      video.dataset.inlineBound='1';
+      syncSound(video);
+      let tap=0;
+      video.addEventListener('click',event=>{
+        if(video.closest('.explore-tile'))return;
+        event.stopPropagation();
+        if(event.detail>=2){clearTimeout(tap);onDoubleLike?.(video.dataset.video);return;}
+        tap=setTimeout(()=>toggle(video),260);
+      });
+      const button=video.closest('.media-frame, .explore-tile')?.querySelector('.ig-mute');
+      if(button&&button.dataset.bound!=='1'){
+        button.dataset.bound='1';
+        button.addEventListener('click',event=>{event.stopPropagation();event.preventDefault();toggle(video);});
+      }
+    });
+    if(!autoplay||!('IntersectionObserver' in window))return;
+    const io=new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{
+        const video=entry.target;
+        if(!(video instanceof HTMLVideoElement))return;
+        if(entry.isIntersecting&&entry.intersectionRatio>=0.5){
+          const preview=video.dataset.preview;
+          if(preview&&!video.getAttribute('src'))video.src=preview;
+          video.play().catch(()=>{});
+        }else video.pause();
+      });
+    },{threshold:[0,0.5,1]});
+    videos.forEach(video=>io.observe(video));
+  }
+
   function bindStages(root,{onDoubleLike}={}){
     const scope=root&&root.querySelectorAll?root:document;
     bindCarousels(scope);
+    bindInlineVideos(scope,{onDoubleLike});
     const host=scope instanceof Document?document.documentElement:scope;
     if(!host.dataset.mediaErrors){
       host.dataset.mediaErrors='1';
@@ -256,5 +329,5 @@ export function createExperience({db,result,esc,getUser}){
     button._pump=()=>{button._bursts=Math.min(button._bursts||0,2);pump();};
   }
 
-  return {signed,hydrate,renderMedia,bindStages,watchMore};
+  return {signed,hydrate,renderMedia,bindStages,bindInlineVideos,watchMore};
 }

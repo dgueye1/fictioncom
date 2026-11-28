@@ -1,5 +1,9 @@
+export function mediaBaseType(type){
+ const base=String(type||'').split(';')[0].trim().toLowerCase();
+ return base==='image/jpg'?'image/jpeg':base;
+}
 export async function validateMedia(file,maxSeconds){
- if(!['image/jpeg','image/png','image/webp','video/mp4','video/webm'].includes(file.type))throw Error('Choose a supported photo or video.');
+ if(!['image/jpeg','image/png','image/webp','video/mp4','video/webm'].includes(mediaBaseType(file.type)))throw Error('Choose a JPG, PNG, WebP, MP4, or WebM file.');
  if(file.size>10485760)throw Error('Keep each upload under 10 MB.');
  if(!file.type.startsWith('video/'))return;
  const url=URL.createObjectURL(file),video=document.createElement('video');video.preload='metadata';

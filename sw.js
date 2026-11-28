@@ -1,4 +1,4 @@
-const CACHE='fictioncom-static-v2';
+const CACHE='fictioncom-static-v3';
 const PRECACHE=['/','/styles.css','/site.webmanifest','/favicon.svg','/icon-192.png'];
 
 self.addEventListener('install',event=>{
@@ -19,7 +19,7 @@ self.addEventListener('fetch',event=>{
   if(url.pathname==='/sw.js')return;
   event.respondWith((async()=>{
     try{
-      const fresh=await fetch(request);
+      const fresh=await fetch(request,{cache:'no-cache'});
       if(fresh.ok&&(staticAsset||url.pathname==='/'||url.pathname.endsWith('.html'))){
         const copy=fresh.clone();
         caches.open(CACHE).then(cache=>cache.put(request,copy)).catch(()=>{});

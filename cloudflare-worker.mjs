@@ -46,6 +46,19 @@ export default {
  }
 };
 
+export async function readAsset(fetchAsset,origin,pathname){
+ let current=new URL(pathname,origin);
+ const seen=new Set();
+ for(let hop=0;hop<5;hop++){
+  if(seen.has(current.href))break;
+  seen.add(current.href);
+  const response=await fetchAsset(current);
+  if(response.status<300||response.status>=400)return response;
+  const location=response.headers.get('location');
+  current=location?new URL(location,current):new URL('/',origin);
+ }
+ return fetchAsset(new URL('/',origin));
+}
 async function serveDocument(request,env){
  const url=new URL(request.url);
  if(!env.ASSETS)return new Response('Not found',{status:404,headers:{'X-Content-Type-Options':'nosniff'}});
@@ -54,8 +67,8 @@ async function serveDocument(request,env){
   if(asset.status!==404)return asset;
   return new Response('Not found',{status:404,headers:{'X-Content-Type-Options':'nosniff'}});
  }
- const index=await env.ASSETS.fetch(new Request(new URL('/index.html',url.origin),request));
- if(!index.ok)return new Response('Not found',{status:index.status,headers:{'X-Content-Type-Options':'nosniff'}});
+ const index=await readAsset(assetUrl=>env.ASSETS.fetch(new Request(assetUrl,{method:'GET'})),url.origin,'/index.html');
+ if(!index.ok)return new Response('Not found',{status:404,headers:{'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'}});
  const html=await applyOpenGraph(await index.text(),url,{supabaseUrl:SUPABASE_URL,supabaseKey:SUPABASE_KEY});
  return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'}});
 }

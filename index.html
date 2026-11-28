@@ -26,8 +26,8 @@
 <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="instagram.css">
+<link rel="stylesheet" href="/styles.css?v=20261127f">
+<link rel="stylesheet" href="/instagram.css?v=20261128b">
 <script src="/analytics.js"></script>
 <script>
 try{
@@ -39,7 +39,7 @@ try{
 }catch(e){}
 </script>
 </head>
-<body>
+<body data-screen="feed">
 <a class="skip-link" href="#content">Skip to content</a>
 <div class="app-shell">
 <aside class="ig-nav">
@@ -117,24 +117,31 @@ try{
   <div class="section-heading">
     <div>
       <p class="eyebrow">FictionCom</p>
-      <h1 id="view-title">Home</h1>
+      <h1 id="view-title">For you</h1>
     </div>
   </div>
   <section id="story-strip" class="story-strip" aria-label="Stories"></section>
-  <nav id="feed-tabs" class="feed-tabs" aria-label="Feed sections" hidden>
-    <button type="button" data-feed="feed" aria-selected="true">For you</button>
-    <button type="button" data-feed="theory">Theories</button>
-    <button type="button" data-feed="chapters">Chapter reviews</button>
-    <button type="button" data-feed="episodes">Episode reviews</button>
-  </nav>
+  <nav id="feed-tabs" class="feed-tabs"><div class="feed-tabs-scroll" role="tablist" aria-label="Feed sections">
+    <button type="button" data-feed="feed" aria-selected="true"><span class="tab-long">For you</span><span class="tab-short">For you</span></button>
+    <button type="button" data-feed="theory"><span class="tab-long">Theories</span><span class="tab-short">Theories</span></button>
+    <button type="button" data-feed="chapters"><span class="tab-long">Chapter reviews</span><span class="tab-short">Chapters</span></button>
+    <button type="button" data-feed="episodes"><span class="tab-long">Episode reviews</span><span class="tab-short">Episodes</span></button>
+    <button type="button" id="open-filters" class="filter-launcher" hidden aria-haspopup="dialog" aria-controls="filter-sheet" aria-label="Filter and sort">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Filter</span>
+    </button>
+  </div></nav>
   <div class="create-row"><p class="small">Browse freely. Sign in to join the conversation.</p><button id="compose" class="primary" type="button">Create</button></div>
   <div id="intro" class="intro" hidden><span class="intro-symbol">✦</span><div><strong>Find your people between episodes.</strong><p>Share a photo, a theory, or the chapter you can’t stop thinking about.</p></div></div>
+  <dialog id="filter-sheet" aria-labelledby="filter-title">
   <form id="filters" class="filters">
+    <div class="filter-sheet-head"><h2 id="filter-title">Filter</h2><button type="button" id="close-filters" class="quiet" aria-label="Close filters">Done</button></div>
     <label>Series<input id="series-filter" placeholder="All anime & manga" maxlength="100"></label>
-    <button class="quiet" type="submit">Filter</button>
+    <button class="quiet" type="submit">Apply</button>
     <button id="clear-series" type="button" class="quiet">Clear</button>
     <label class="sort-label">Sort<select id="discussion-sort"><option value="recommended">For you</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="episode-asc">Episode / chapter: low to high</option><option value="episode-desc">Episode / chapter: high to low</option></select></label>
   </form>
+  </dialog>
   <div class="community-tools"><button id="series-page" type="button" hidden>View series page</button></div>
   <div id="content" aria-live="polite"></div>
 </main>
@@ -188,8 +195,58 @@ try{
 
 <dialog id="modal"><button id="close-modal" class="close" type="button" aria-label="Close dialog">×</button><div id="modal-body"></div></dialog>
 <div id="toast" role="status"></div>
-<footer class="public-footer"><a href="privacy.html">Privacy</a><a href="terms.html">Terms &amp; rules</a><button id="public-support" type="button">Support</button><button id="public-feedback" type="button">Feedback</button><span>For fans age 14 and up</span></footer>
-<script type="module" src="monitoring.js"></script>
-<script type="module" src="app.js"></script>
+<footer class="public-footer"><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms &amp; rules</a><button id="public-support" type="button">Support</button><button id="public-feedback" type="button">Feedback</button><span>For fans age 14 and up</span></footer>
+<script>
+(function(){
+  var params=new URLSearchParams(location.search);
+  var path=(location.pathname.replace(/\/+$/,'')||'/');
+  var known={ '/':'feed','/feed':'feed','/theories':'theory','/chapters':'chapters','/episodes':'episodes','/explore':'explore','/chat':'messages' };
+  if(!Object.prototype.hasOwnProperty.call(known,path)&&!params.has('chat'))return;
+  var view=params.has('chat')?'messages':known[path];
+  var discussion=view==='feed'||view==='theory'||view==='chapters'||view==='episodes';
+  var nav=discussion?'feed':view;
+  var titles={feed:'For you',theory:'Theories',chapters:'Chapter reviews',episodes:'Episode reviews',explore:'Explore',messages:'Messages'};
+  document.body.dataset.screen=view;
+  var title=document.getElementById('view-title');
+  if(title)title.textContent=titles[view]||'FictionCom';
+  document.querySelectorAll('button[data-view]').forEach(function(button){
+    button.classList.toggle('active',button.getAttribute('data-view')===nav);
+  });
+  var tabs=document.getElementById('feed-tabs');
+  if(tabs){
+    tabs.hidden=!discussion;
+    tabs.querySelectorAll('[data-feed]').forEach(function(button){
+      button.setAttribute('aria-selected',String(button.getAttribute('data-feed')===view));
+    });
+  }
+  var filters=document.getElementById('open-filters');
+  if(filters)filters.hidden=!(view==='theory'||view==='chapters'||view==='episodes');
+  var intro=document.getElementById('intro');
+  if(intro)intro.hidden=view==='feed'||view==='explore'||view==='messages';
+  var main=document.querySelector('main');
+  if(main){
+    main.classList.toggle('home-feed',view==='feed');
+    main.classList.toggle('explore-view',view==='explore');
+  }
+  var strip=document.getElementById('story-strip');
+  if(strip){
+    strip.hidden=!discussion;
+    if(discussion)strip.innerHTML='<div class="own-story-bubble"><button class="story-bubble add-story" id="your-story" type="button" aria-label="Your story"><span class="story-ring"><span class="avatar guest-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" width="32" height="32"><circle cx="12" cy="8.5" r="3.1" fill="currentColor"/><path d="M5.8 18.4a6.2 6.2 0 0 1 12.4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span></span><span>Your story</span></button><button class="story-plus" id="add-story" type="button" aria-label="Add a story">+</button></div>';
+  }
+  var content=document.getElementById('content');
+  if(content&&discussion)content.innerHTML='<div class="feed-skeleton" aria-busy="true" aria-label="Loading posts"><div></div><div></div><div></div></div>';
+  if(content&&view==='explore'){
+    var bone='<span class="skeleton-line"></span><span class="skeleton-line short"></span>';
+    var chips=Array.from({length:4},function(){return '<span class="series-chip skeleton-line"></span>';}).join('');
+    var people=Array.from({length:4},function(){return '<div class="people-card"><span class="avatar skeleton-tile"></span>'+bone+'</div>';}).join('');
+    var tiles=Array.from({length:9},function(){return '<div class="explore-tile skeleton-tile"></div>';}).join('');
+    content.innerHTML='<section class="explore"><div class="explore-type-tabs"><div class="explore-type-scroll" role="tablist" aria-label="Explore sections"><button type="button" data-explore-type="foryou" aria-selected="true"><span class="tab-long">For you</span><span class="tab-short">For you</span></button><button type="button" data-explore-type="theory" aria-selected="false"><span class="tab-long">Theories</span><span class="tab-short">Theories</span></button><button type="button" data-explore-type="chapters" aria-selected="false"><span class="tab-long">Chapter reviews</span><span class="tab-short">Chapters</span></button><button type="button" data-explore-type="episodes" aria-selected="false"><span class="tab-long">Episode reviews</span><span class="tab-short">Episodes</span></button></div></div><div id="explore-chips" class="chip-row" aria-label="Trending series">'+chips+'</div><h2 class="explore-heading">Find people</h2><div id="explore-people" class="people-row">'+people+'</div><h2 class="explore-heading">Discover</h2><div id="explore-grid" class="explore-grid" aria-busy="true">'+tiles+'</div></section>';
+  }
+  var rail=document.getElementById('rail-suggestions');
+  if(rail&&!rail.children.length)rail.innerHTML=Array.from({length:4},function(){return '<div class="suggest-row" aria-hidden="true"><span class="avatar skeleton-tile"></span><span><span class="skeleton-line"></span><span class="skeleton-line short"></span></span></div>';}).join('');
+})();
+</script>
+<script type="module" src="/monitoring.js"></script>
+<script type="module" src="/app.js?v=20261128b"></script>
 </body>
 </html>

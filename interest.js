@@ -19,9 +19,11 @@ export function postTypeKey(post){
 
 export function postTypeLabel(post){
   const key=postTypeKey(post);
+  const episode=Number(post?.episode);
+  const numbered=Number.isInteger(episode)&&episode>0;
   if(key==='theory')return 'Theory';
-  if(key==='chapters')return 'Chapter review Ch. '+(post?.episode||'?');
-  if(key==='episodes')return 'Episode review Ep. '+(post?.episode||'?');
+  if(key==='chapters')return numbered?'Ch. '+episode:'Chapter review';
+  if(key==='episodes')return numbered?'Ep. '+episode:'Episode review';
   return '';
 }
 
