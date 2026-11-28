@@ -640,9 +640,11 @@ body[data-screen="series"] .section-heading,body[data-screen="drop"] .section-he
 .ig-layer-backdrop{position:absolute;inset:0;border:0;background:#000a;padding:0}
 .post-detail{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,420px);width:min(1080px,calc(100vw - 64px));height:min(860px,calc(100vh - 48px));margin:24px auto;background:var(--bg);overflow:hidden}
 .post-detail-media{background:#000;min-width:0;display:grid;place-items:center;position:relative}
+.post-detail-media .detail-fallback{color:#fff;padding:40px;max-width:34em}
+.post-detail-media .detail-fallback p{margin:0;font-size:22px;line-height:1.45}
 .post-detail-media .media,.post-detail-media .media-stage,.post-detail-media .media-carousel,.post-detail-media .manga-page{width:100%;height:100%;max-height:none}
 .post-detail-side,.comment-sheet-body{display:flex;flex-direction:column;min-height:0;min-width:0}
-.post-detail-close{position:absolute;top:8px;right:8px;z-index:2;width:44px;height:44px;border:0;border-radius:50%;background:#0008;color:#fff}
+.post-detail-close{position:absolute;top:8px;right:8px;z-index:5;width:44px;height:44px;border:0;border-radius:50%;background:#0008;color:#fff}
 .sheet-head{display:flex;align-items:center;justify-content:center;min-height:44px;border-bottom:1px solid var(--line);position:relative;padding:0 8px}
 .sheet-head h2{margin:0;font-size:16px;font-weight:700}
 .sheet-head button{position:absolute;right:4px;top:0;width:44px;height:44px;border:0;border-radius:0;background:transparent;color:var(--text);font-size:28px;line-height:1}
