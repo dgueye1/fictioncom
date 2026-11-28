@@ -58,7 +58,7 @@ for(const name of ['index.html','write.html','privacy.html','terms.html','launch
   assert.doesNotMatch(text, /fictioncom\.pages\.dev/, name);
 }
 assert.match(await readFile(new URL('./email-alerts.mjs', import.meta.url), 'utf8'), /https:\/\/fictioncom\.com\//);
-assert.match(await readFile(new URL('./cloudflare-pages-build.mjs', import.meta.url), 'utf8'), /include:\['\/','\/\*'\]/);
+assert.match(await readFile(new URL('./cloudflare-pages-build.mjs', import.meta.url), 'utf8'), /include:\['\/\*'\]/);
 assert.match(await readFile(new URL('./wrangler.jsonc', import.meta.url), 'utf8'), /"run_worker_first":true/);
 assert.doesNotMatch(await readFile(new URL('./cloudflare-worker.mjs', import.meta.url), 'utf8'), /https:\/\/fictioncom\.pages\.dev/);
 

@@ -5,4 +5,4 @@ await writeFile(new URL('./wrangler.jsonc',import.meta.url),JSON.stringify({name
 const worker=await readFile(new URL('./cloudflare-worker.mjs',import.meta.url),'utf8');
 await writeFile(new URL('./cloudflare-pages-entry.mjs',import.meta.url),worker);
 // Include every path, including /, so fictioncom.pages.dev can 301 before Pages serves a static file.
-await writeFile(new URL('./cloudflare-public/_routes.json',import.meta.url),JSON.stringify({version:1,include:['/','/*'],exclude:[]}));
+await writeFile(new URL('./cloudflare-public/_routes.json',import.meta.url),JSON.stringify({version:1,include:['/*'],exclude:[]}));
