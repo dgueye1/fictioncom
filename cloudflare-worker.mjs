@@ -9,13 +9,21 @@ import {createOperations} from './operations-worker.mjs';
 
 const handlers=new WeakMap();
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+// Exact production host only. Preview hosts such as *.fictioncom.pages.dev stay put.
+// The fragment (#access_token) never reaches the server; Location has no fragment, so the browser keeps it.
+export function legacyPagesRedirect(url){
+ if(url.hostname!=='fictioncom.pages.dev')return null;
+ return new Response(null,{status:301,headers:{Location:'https://fictioncom.com'+url.pathname+url.search}});
+}
 export default {
  async scheduled(event,env){
-  await fetch('https://fictioncom.pages.dev/api/alerts/drain',{method:'POST',headers:{Authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY}});
-  if(new Date(event.scheduledTime).getUTCMinutes()===0)await fetch('https://fictioncom.pages.dev/api/operations/run',{method:'POST',headers:{Authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY}});
+  await fetch('https://fictioncom.com/api/alerts/drain',{method:'POST',headers:{Authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY}});
+  if(new Date(event.scheduledTime).getUTCMinutes()===0)await fetch('https://fictioncom.com/api/operations/run',{method:'POST',headers:{Authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY}});
  },
  async fetch(request,env){
   const url=new URL(request.url);
+  const redirect=legacyPagesRedirect(url);
+  if(redirect)return redirect;
   if(url.pathname==='/api/moderator/launch-checklist')return launchAccess(request);
   if(url.pathname.startsWith('/api/operations/'))return createOperations(env).handle(request);
   if(url.pathname.startsWith('/api/alerts/'))return createEmailAlerts(env).handle(request);
@@ -70,5 +78,5 @@ async function serveDocument(request,env){
  const index=await readAsset(assetUrl=>env.ASSETS.fetch(new Request(assetUrl,{method:'GET'})),url.origin,'/index.html');
  if(!index.ok)return new Response('Not found',{status:404,headers:{'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'}});
  const html=await applyOpenGraph(await index.text(),url,{supabaseUrl:SUPABASE_URL,supabaseKey:SUPABASE_KEY});
- return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'}});
+ return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Permissions-Policy':'geolocation=()','Referrer-Policy':'strict-origin-when-cross-origin'}});
 }
