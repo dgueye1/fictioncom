@@ -1,6 +1,6 @@
 import {createExperience} from './experience.js?v=20261127c';
 import {createInterests,postTypeBadge,postTypeKey,hashtags} from './interest.js?v=20261127e';
-import {createComposer} from './composer.js?v=20261127c';
+import {createComposer} from './composer.js?v=20261128b';
 import {linkify,attachMentionSearch} from './text-links.js';
 import {createSearch} from './search.js?v=20261127g';
 import {createSharing} from './sharing.js';
@@ -474,8 +474,9 @@ function showcaseProfile(person){
  if(me&&person.id===me.id)return false;
  const handle=String(person.username).toLowerCase();
  const name=String(person.display_name||'').toLowerCase();
-  if(/(^|[_-])test([_-]|$)|test\d|alert_test|chat_test|billing_test|_test$/.test(handle))return false;
-  if(/alert test|fictioncom alert|chat test|billing test|animecom chat/.test(name))return false;
+ const blob=handle+' '+name;
+ if(/alert_test|animecom_chat_test|chat_test|billing_test|_test\b|test\d|(^|[\s_-])test([\s_-]|$)/.test(blob))return false;
+ if(/alert test|fictioncom alert|chat test|billing test|animecom chat/.test(name))return false;
  return true;
 }
 async function paintExplore(query,request){
