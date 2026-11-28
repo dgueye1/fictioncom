@@ -10,7 +10,7 @@ const KINDS={
   'reaction-anime':'Episode review'
 };
 
-export function createComposer({$,esc,toast,modal,close,guarded,requireProfile,createStory,getUser,getView,result,db,uploadMediaPost,searchUsers,onPublished}){
+export function createComposer({$,esc,toast,modal,close,guarded,requireProfile,createStory,getUser,getView,result,db,uploadMediaPost,searchUsers,onPublished,fandom}){
   return async function compose(defaultKind){
     if(defaultKind==='story'){createStory();return;}
     if(!requireProfile())return;
@@ -47,6 +47,7 @@ export function createComposer({$,esc,toast,modal,close,guarded,requireProfile,c
     form.querySelector('#tab-text').onclick=()=>{mode='text';paintMode();};
     field('post-kind').onchange=paintKind;
     paintMode();
+    if(fandom)await fandom.mountComposer(form).catch(()=>{});
     const snapshot=()=>({title:field('title').value,body:field('body').value,series:field('series').value,selected:postSeries,episode:field('episode').value,spoiler:field('spoiler').checked,kind:field('post-kind').value,mode,files:files.map(file=>({name:file.name,lastModified:file.lastModified,blob:file}))});
     const persist=()=>{if(published)return writeQueue;const data=snapshot();writeQueue=writeQueue.catch(()=>{}).then(()=>saveDraft(draftKey,data)).then(()=>status('Draft saved on this device.'),()=>status('Device storage is unavailable. Keep this window open to retain your draft.'));return writeQueue;};
     const schedule=()=>{clearTimeout(timer);timer=setTimeout(persist,250);};
@@ -61,6 +62,7 @@ export function createComposer({$,esc,toast,modal,close,guarded,requireProfile,c
       field('dropzone').classList.toggle('has-files',files.length>0);
       field('attachment-order').querySelectorAll('[data-move-attachment]').forEach(button=>button.onclick=()=>{const index=Number(button.dataset.moveAttachment),next=index+Number(button.dataset.direction);[files[index],files[next]]=[files[next],files[index]];attachments();schedule();});
       field('attachment-order').querySelectorAll('[data-remove-attachment]').forEach(button=>button.onclick=()=>{files.splice(Number(button.dataset.removeAttachment),1);attachments();schedule();});
+      form.dispatchEvent(new CustomEvent('fandom-sync'));
     }
     async function addMediaFiles(chosen){
       if(files.length+chosen.length>6){toast('Choose up to six attachments.');return;}
@@ -110,19 +112,23 @@ export function createComposer({$,esc,toast,modal,close,guarded,requireProfile,c
     form.onsubmit=guarded(async()=>{
       const selectedKind=kindValue();
       const reaction=selectedKind.startsWith('reaction');
-      const kind=reaction?'reaction':selectedKind;
+      const kind=reaction?'reaction':(['fanart','cosplay','poll'].includes(selectedKind)?'post':selectedKind);
       const medium=selectedKind==='reaction-manga'?'manga':(postSeries?.medium||(selectedKind==='reaction-anime'?'anime':'anime'));
       if(kind!=='post'&&!postSeries)throw Error('Choose a series from the suggestions.');
       if(reaction&&!field('episode').value)throw Error(selectedKind==='reaction-manga'?'Add a chapter number.':'Add an episode number.');
       if(mode==='media'&&!files.length&&kind==='post')throw Error('Add a photo or video, or switch to Text.');
       if(mode==='text'&&!field('body').value.trim()&&!files.length)throw Error('Write something before publishing.');
+      if(fandom){const problem=fandom.validateComposer(form);if(problem)throw Error(problem);}
       await persist();
+      const meta=fandom?fandom.readComposer(form):null;
       const post={author:owner,kind,title:mode==='text'?field('title').value:'',body:field('body').value,series:postSeries?.title||field('series').value.trim(),medium:postSeries?.medium||medium,episode:reaction?Number(field('episode').value):null,spoiler:field('spoiler').checked};
+      let id;
       if(files.length){
         field('upload-status').hidden=false;
-        try{await uploadMediaPost(files,post,fraction=>{if(form.isConnected){field('upload-progress').value=Math.round(fraction*100);field('upload-label').textContent=Math.round(fraction*100)+'% uploaded';}});}
+        try{id=await uploadMediaPost(files,post,fraction=>{if(form.isConnected){field('upload-progress').value=Math.round(fraction*100);field('upload-label').textContent=Math.round(fraction*100)+'% uploaded';}});}
         catch(error){field('upload-label').textContent='Upload failed. Your draft is retained; press Share to retry.';throw error;}
-      }else await result(db.from('posts').insert(post));
+      }else id=(await result(db.from('posts').insert(post).select('id').single())).id;
+      if(fandom&&meta){try{await fandom.savePost(id,meta,post);}catch(error){await db.from('posts').delete().eq('id',id).eq('author',owner);throw error;}}
       published=true;clearTimeout(timer);await writeQueue;await deleteDraft(draftKey).catch(()=>{});
       const message={type:'published'};channel.postMessage(message);legacy.postMessage(message);
       close();toast('Your post is live.');await onPublished?.(reaction?(medium==='manga'?'chapters':'episodes'):kind==='theory'?'theory':'feed');

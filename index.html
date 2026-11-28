@@ -26,8 +26,8 @@
 <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="instagram.css">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/instagram.css">
 <script src="/analytics.js"></script>
 <script>
 try{
@@ -95,6 +95,7 @@ try{
 </aside>
 
 <header class="topbar">
+  <button type="button" id="topbar-back" class="icon-btn topbar-back" hidden aria-label="Back"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <a class="brand wordmark" href="#feed">FictionCom</a>
   <div class="header-tools">
     <button type="button" id="theme-toggle-mobile" class="icon-btn" aria-label="Toggle color theme">
@@ -115,6 +116,7 @@ try{
 <div class="layout">
 <main>
   <div class="section-heading">
+    <button type="button" id="page-back" class="page-back" hidden aria-label="Back"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div>
       <p class="eyebrow">FictionCom</p>
       <h1 id="view-title">Home</h1>
@@ -133,7 +135,7 @@ try{
     <label>Series<input id="series-filter" placeholder="All anime & manga" maxlength="100"></label>
     <button class="quiet" type="submit">Filter</button>
     <button id="clear-series" type="button" class="quiet">Clear</button>
-    <label class="sort-label">Sort<select id="discussion-sort"><option value="recommended">For you</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="episode-asc">Episode / chapter: low to high</option><option value="episode-desc">Episode / chapter: high to low</option></select></label>
+    <label class="sort-label">Sort<select id="discussion-sort"><option value="recommended">For you</option><option value="top" hidden>Top</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="episode-asc">Episode / chapter: low to high</option><option value="episode-desc">Episode / chapter: high to low</option></select></label>
   </form>
   <div class="community-tools"><button id="series-page" type="button" hidden>View series page</button></div>
   <div id="content" aria-live="polite"></div>
@@ -186,10 +188,28 @@ try{
   <img id="lightbox-img" alt="">
 </div>
 
+<div id="ig-layer" class="ig-layer" hidden>
+  <button type="button" id="ig-layer-backdrop" class="ig-layer-backdrop" aria-label="Close"></button>
+  <section id="post-detail" class="post-detail" hidden>
+    <button type="button" id="post-detail-close" class="post-detail-close" aria-label="Close">×</button>
+    <div id="post-detail-media" class="post-detail-media"></div>
+    <div id="post-detail-side" class="post-detail-side"></div>
+  </section>
+  <section id="comment-sheet" class="comment-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="comment-sheet-title">
+    <div class="sheet-handle" id="comment-sheet-handle"></div>
+    <header class="sheet-head"><h2 id="comment-sheet-title">Comments</h2><button type="button" id="comment-sheet-close" aria-label="Close comments">×</button></header>
+    <div id="comment-sheet-body" class="comment-sheet-body"></div>
+  </section>
+  <section id="share-sheet" class="share-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="share-sheet-title">
+    <div class="sheet-handle" id="share-sheet-handle"></div>
+    <header class="sheet-head"><h2 id="share-sheet-title">Share</h2><button type="button" id="share-sheet-close" aria-label="Close share">×</button></header>
+    <div id="share-sheet-body" class="share-sheet-body"></div>
+  </section>
+</div>
 <dialog id="modal"><button id="close-modal" class="close" type="button" aria-label="Close dialog">×</button><div id="modal-body"></div></dialog>
 <div id="toast" role="status"></div>
 <footer class="public-footer"><a href="privacy.html">Privacy</a><a href="terms.html">Terms &amp; rules</a><button id="public-support" type="button">Support</button><button id="public-feedback" type="button">Feedback</button><span>For fans age 14 and up</span></footer>
-<script type="module" src="monitoring.js"></script>
-<script type="module" src="app.js"></script>
+<script type="module" src="/monitoring.js"></script>
+<script type="module" src="/app.js"></script>
 </body>
 </html>

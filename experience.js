@@ -109,6 +109,7 @@ export function createExperience({db,result,esc,getUser}){
     const items=[{path:post.media_path,media_type:post.media_type},...(ctx?.attachments||[])];
     const slides=items.map((item,index)=>slide(post,item,ctx?.urls?.[item.path],index)).filter(Boolean);
     if(!slides.length)return '';
+    if(ctx?.layout==='manga'&&slides.length>1&&items.every(item=>item.media_type!=='video'))return `<div class="manga-page" data-post-media="${post.id}">${slides.join('')}</div>`;
     if(slides.length===1)return `<div class="media-stage" data-post-media="${post.id}">${slides[0]}</div>`;
     const dots=slides.map((_,index)=>`<button type="button" class="carousel-dot${index===0?' on':''}" data-go="${index}" aria-label="Show attachment ${index+1} of ${slides.length}"></button>`).join('');
     return `<div class="media-carousel" data-carousel data-post-media="${post.id}" tabindex="0" aria-roledescription="carousel" aria-label="Post attachments"><div class="carousel-track">${slides.join('')}</div><button type="button" class="carousel-arrow prev" data-car-prev aria-label="Previous attachment" hidden>‹</button><button type="button" class="carousel-arrow next" data-car-next aria-label="Next attachment">›</button><span class="carousel-count" aria-live="polite">1/${slides.length}</span><div class="carousel-dots">${dots}</div></div>`;
@@ -174,15 +175,13 @@ export function createExperience({db,result,esc,getUser}){
     box.querySelector('#lightbox-close').focus();
   }
 
-  function popHeart(stage,x,y){
-    const rect=stage.getBoundingClientRect();
-    const heart=document.createElement('span');
-    heart.className='heart-pop';
-    heart.textContent='♥';
-    heart.style.left=`${x-rect.left}px`;
-    heart.style.top=`${y-rect.top}px`;
-    stage.append(heart);
-    heart.addEventListener('animationend',()=>heart.remove());
+  function popHeart(stage){
+    const burst=document.createElement('span');
+    burst.className='ig-burst show';
+    burst.setAttribute('aria-hidden','true');
+    burst.textContent='♥';
+    stage.append(burst);
+    burst.addEventListener('animationend',()=>burst.remove());
   }
 
   function bindStages(root,{onDoubleLike}={}){
@@ -209,7 +208,7 @@ export function createExperience({db,result,esc,getUser}){
         const image=event.target.closest('img.media');
         if(event.detail>=2){
           clearTimeout(timer);
-          popHeart(stage,event.clientX,event.clientY);
+          popHeart(stage);
           onDoubleLike?.(id);
           return;
         }
