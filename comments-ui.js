@@ -41,8 +41,11 @@ export function createComments({db,$,esc,result,toast,fail,guarded,requireProfil
     }
     const listHtml=(await Promise.all(roots.map(thread))).join('')||'<p class="small comment-empty">No comments yet.</p>';
     const emoji=EMOJI.map(item=>`<button type="button" class="emoji-pick" data-emoji="${item}" aria-label="Insert ${item}">${item}</button>`).join('');
-    host.innerHTML=`${wide?`<header class="detail-author"><strong>${esc(post.profiles?.username||'member')}</strong></header><p class="detail-caption"><strong>${esc(post.profiles?.username||'member')}</strong> ${esc(post.body||'')}</p>`:''}${isEnhanced()?'<label class="comment-sort-label">Sort<select id="comment-sort"><option value="newest">Newest</option><option value="liked">Top</option></select></label>':''}<div class="comments-list">${listHtml}${rows.length===(page+1)*50?'<button type="button" id="more-comments" class="text-button">View more comments</button>':''}</div>${uid()?`<form id="thread-form" class="comment-composer"><div id="reply-context"></div><div class="emoji-picks">${emoji}</div><label class="sr-only" for="thread-body">Add a comment</label><textarea id="thread-body" maxlength="2000" required placeholder="Add a comment…" rows="1">${esc(draft)}</textarea><button class="primary" type="submit">Post</button></form>`:'<button id="reply-signin" class="primary" type="button">Sign in to comment</button>'}`;
-    if($('#comment-sort')){$('#comment-sort').value=sortOrder;$('#comment-sort').onchange=()=>conversation(id,parent,0,composerBody($('#thread-body')||{value:''}),$('#comment-sort').value,post).catch(fail);}
+    const composer=uid()?`<form id="thread-form" class="comment-composer"><div id="reply-context"></div><div class="emoji-picks">${emoji}</div><label class="sr-only" for="thread-body">Add a comment</label><textarea id="thread-body" maxlength="2000" required placeholder="Add a comment…" rows="1">${esc(draft)}</textarea><button class="primary" type="submit">Post</button></form>`:'<button id="reply-signin" class="primary comment-login" type="button">Log in to comment</button>';
+    const list=`${wide?`<header class="detail-author"><strong>${esc(post.profiles?.username||'member')}</strong></header><p class="detail-caption"><strong>${esc(post.profiles?.username||'member')}</strong> ${esc(post.body||'')}</p>`:''}<div class="comments-list">${listHtml}${rows.length===(page+1)*50?'<button type="button" id="more-comments" class="text-button">View more comments</button>':''}</div>`;
+    const phoneDock=document.querySelector('#comment-sheet-dock');
+    if(!wide&&phoneDock){host.innerHTML=list;phoneDock.innerHTML=composer;}
+    else{host.innerHTML=list;host.insertAdjacentHTML('beforeend','<div class="comment-dock">'+composer+'</div>');}
     const setReply=replyId=>{
       parent=replyId;
       const name=rows.find(comment=>comment.id===replyId)?.profiles?.username;
@@ -102,7 +105,7 @@ export function createComments({db,$,esc,result,toast,fail,guarded,requireProfil
     bindManage();
     if($('#more-comments'))$('#more-comments').onclick=()=>conversation(id,parent,page+1,$('#thread-body')?composerBody($('#thread-body')):'',sortOrder,post).catch(fail);
     if(!uid()){$('#reply-signin').onclick=requireProfile;return;}
-    host.querySelectorAll('[data-emoji]').forEach(button=>button.onclick=()=>{
+    (host.closest('#comment-sheet,#post-detail')||host).querySelectorAll('[data-emoji]').forEach(button=>button.onclick=()=>{
       const input=$('#thread-body');
       if(!input)return;
       input.value=(input.value+button.dataset.emoji).slice(0,2000);

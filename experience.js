@@ -203,15 +203,19 @@ export function createExperience({db,result,esc,getUser}){
       stage.dataset.tapBound='1';
       const id=stage.dataset.postMedia;
       let timer=0;
+      let lastTap=0;
       stage.addEventListener('click',event=>{
         if(event.target.closest('button,video,a'))return;
+        const now=Date.now();
         const image=event.target.closest('img.media');
-        if(event.detail>=2){
+        if(event.detail>=2||now-lastTap<320){
+          lastTap=0;
           clearTimeout(timer);
           popHeart(stage);
           onDoubleLike?.(id);
           return;
         }
+        lastTap=now;
         if(!image)return;
         const src=image.currentSrc||image.src;
         const alt=image.alt;

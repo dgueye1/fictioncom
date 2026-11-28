@@ -30,7 +30,7 @@ function weekStart(){
 function unitWord(medium,n){return medium==='manga'?(n===1?'chapter':'chapters'):(n===1?'episode':'episodes');}
 function unitShort(medium){return medium==='manga'?'Ch.':'Ep.';}
 
-export function createFandom({db,$,esc,result,toast,fail,guarded,requireProfile,getUser,getMe,modal,close,openPost,showProfile}){
+export function createFandom({db,$,esc,result,toast,fail,guarded,requireProfile,getUser,getMe,modal,close,openPost,showProfile,signed}){
   const pack=new Map();
   let capsPromise=null;
   const uid=()=>getUser()?.id;
@@ -261,10 +261,10 @@ export function createFandom({db,$,esc,result,toast,fail,guarded,requireProfile,
     $('#view-title').textContent=title;
     host.innerHTML='<section class="series-hub" aria-busy="true"><div class="series-hero"><div class="series-cover skeleton-block"></div><div class="series-hero-copy"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div></div><div class="series-columns"><div class="skeleton-block tall"></div><div class="skeleton-block tall"></div></div></section>';
     const ready=await caps();
-    const postQuery=db.from('posts').select('id,title,body,kind,episode,spoiler,author,created_at,medium,series,profiles!posts_author_fkey(username,display_name)').eq('series',title).eq('medium',medium).in('kind',['theory','reaction']).order('created_at',{ascending:false}).limit(80);
+    const postQuery=db.from('posts').select('id,title,body,kind,episode,spoiler,author,created_at,medium,series,media_path,media_type,profiles!posts_author_fkey(username,display_name)').eq('series',title).eq('medium',medium).in('kind',['theory','reaction']).eq('status','approved').order('created_at',{ascending:false}).limit(60);
     const catalogPromise=searchCatalog(title,medium).catch(()=>[]);
     const [postResult,fans,summary,polls,mine]=await Promise.all([
-      postQuery.then(response=>response.error?db.from('posts').select('id,title,body,kind,episode,spoiler,author,created_at,medium,series').eq('series',title).eq('medium',medium).in('kind',['theory','reaction']).order('created_at',{ascending:false}).limit(80):response),
+      postQuery.then(response=>response.error?db.from('posts').select('id,title,body,kind,episode,spoiler,author,created_at,medium,series,media_path,media_type').eq('series',title).eq('medium',medium).in('kind',['theory','reaction']).order('created_at',{ascending:false}).limit(60):response),
       ready.drops||true?optional(()=>db.rpc('series_fans',{p_series:title,p_medium:medium})):null,
       ready.extras?optional(()=>db.rpc('series_score_summary',{p_series:title,p_medium:medium})):null,
       ready.polls?optional(()=>db.from('polls').select('post_id,question,options,week_start').eq('series',title).eq('medium',medium).eq('week_start',weekStart()).limit(1)):null,
@@ -278,17 +278,44 @@ export function createFandom({db,$,esc,result,toast,fail,guarded,requireProfile,
     const numbers=posts.map(post=>Number(post.episode)||0).filter(Boolean);
     const latest=numbers.length?Math.max(...numbers):0;
     const length=medium==='manga'?match.chapters:match.episodes;
-    const theories=posts.filter(post=>post.kind==='theory').slice(0,8);
+    const theories=posts.filter(post=>post.kind==='theory');
+    const reviews=posts.filter(post=>post.kind==='reaction');
     const byNumber=new Map();
-    for(const post of posts){if(post.kind!=='reaction'||!post.episode)continue;if(!byNumber.has(post.episode))byNumber.set(post.episode,[]);byNumber.get(post.episode).push(post);}
+    for(const post of reviews){if(!post.episode)continue;if(!byNumber.has(post.episode))byNumber.set(post.episode,[]);byNumber.get(post.episode).push(post);}
     const scoreMap=new Map((summary||[]).map(row=>[row.episode,row]));
     const following=!!mine;
-    const progress=mine?.progress??'';
-    const averageAll=(summary||[]).reduce((sum,row)=>sum+Number(row.average||0)*Number(row.reviews||0),0);
-    const reviewCount=(summary||[]).reduce((sum,row)=>sum+Number(row.reviews||0),0);
-    const overall=reviewCount?Math.round(averageAll/reviewCount*10)/10:null;
+    const savedProgress=Number(mine?.progress);
+    const progressValue=savedProgress>0?String(savedProgress):'';
+    const cap=Number(length)>0?Number(length):'';
+    const unit=medium==='manga'?'Chapter':'Episode';
     const poll=polls?.[0];
-    host.innerHTML=`<section class="series-hub"><div class="series-hero">${match.cover?`<img class="series-cover" src="${esc(match.cover)}" alt="" loading="lazy">`:'<div class="series-cover series-cover-fallback" aria-hidden="true">'+esc(title.slice(0,1))+'</div>'}<div class="series-hero-copy"><p class="eyebrow">${medium==='manga'?'Manga':'Anime'}</p><h2>${esc(match.english&&match.english!==title?match.english:title)}</h2>${japanese?`<p class="series-jp" lang="ja">${esc(japanese)}</p>`:''}<p class="series-tracker">Latest discussed ${unitShort(medium)} ${latest||'—'}${length?' of '+length:''}${overall!=null?' · avg '+overall+'/10':''}</p><div class="form-actions"><button type="button" id="series-follow" class="primary">${following?'Following':'Follow series'}</button></div><form id="series-progress"><label>Caught up through ${medium==='manga'?'chapter':'episode'}<input id="series-progress-input" type="number" min="0" max="100000" value="${esc(progress)}" placeholder="${medium==='manga'?'1100':'1080'}"></label><button class="primary" type="submit">Save progress</button></form><p class="small">${uid()?'Posts past this number stay blurred until you tap them.':'Guests see numbered posts blurred until they tap to reveal. Sign in to set your progress.'}</p></div></div><div class="series-columns"><section><h3>Top theories</h3><div id="series-theories">${theories.map(post=>`<button type="button" class="notice" data-open-series-post="${post.id}"><strong>${esc(post.title||'Theory')}</strong><span class="meta">@${esc(post.profiles?.username||'fan')}</span></button>`).join('')||'<p class="small">No theories yet. Theories stay separate from reviews.</p>'}</div><h3>${medium==='manga'?'Chapter':'Episode'} threads</h3><div id="series-drops">${[...byNumber.keys()].sort((a,b)=>b-a).slice(0,24).map(number=>{const stat=scoreMap.get(number);return `<button type="button" class="notice" data-open-drop="${number}"><strong>${unitShort(medium)} ${number}</strong><span class="meta">${byNumber.get(number).length} reviews${stat?' · avg '+stat.average+'/10':''}</span></button>`;}).join('')||'<p class="small">The first review opens the drop thread.</p>'}</div></section><section><h3>Fans</h3><div id="series-fans">${(fans||[]).map(person=>`<button type="button" class="notice" data-series-fan="${person.id}"><strong>${esc(person.display_name||person.username)}</strong><span class="meta">@${esc(person.username)}</span></button>`).join('')||'<p class="small">'+(ready?fans?'No followers yet.':'The fans list turns on after the fandom update.':'No followers yet.')+'</p>'}</div>${poll?`<h3>Best chapter this week</h3><button type="button" class="notice" data-open-series-post="${poll.post_id}"><strong>${esc(poll.question)}</strong><span class="meta">Vote on this week’s poll</span></button>`:''}</section></div></section>`;
+    const fanCount=Array.isArray(fans)?fans.length:0;
+    async function tile(post){
+      const past=!uid()?!!post.episode:(savedProgress>0&&post.episode>savedProgress);
+      const hidden=post.spoiler||past;
+      const url=!hidden&&post.media_path&&signed?await signed(post.media_path).catch(()=>''):'';
+      const label=post.title||(post.episode?unitShort(medium)+' '+post.episode:'Post');
+      return `<button type="button" class="series-tile" data-open-series-post="${post.id}" aria-label="${esc(label)}">${url?`<img src="${esc(url)}" alt="" loading="lazy">`:`<span>${esc(String(label).slice(0,42))}</span>`}</button>`;
+    }
+    const [postTiles,theoryTiles,reviewTiles]=await Promise.all([
+      Promise.all(posts.map(tile)),
+      Promise.all(theories.map(tile)),
+      Promise.all(reviews.map(tile))
+    ]);
+    if(!current())return;
+    const threadTiles=[...byNumber.keys()].sort((a,b)=>b-a).map(number=>{
+      const stat=scoreMap.get(number);
+      return `<button type="button" class="series-tile series-thread" data-open-drop="${number}"><strong>${unitShort(medium)} ${number}</strong><span>${byNumber.get(number).length}${stat?' · '+stat.average:''}</span></button>`;
+    }).join('');
+    const emptyTile=text=>`<p class="series-empty">${text}</p>`;
+    host.innerHTML=`<section class="series-hub"><header class="series-hero">${match.cover?`<img class="series-cover" src="${esc(match.cover)}" alt="" loading="lazy">`:`<div class="series-cover series-cover-fallback" aria-hidden="true">${esc(title.slice(0,1))}</div>`}<div class="series-hero-copy"><h2>${esc(title)}</h2>${japanese?`<p class="series-jp" lang="ja">${esc(japanese)}</p>`:''}</div></header><button type="button" id="series-follow" class="primary series-follow">${following?'Following':'Follow series'}</button><div class="series-stats"><span><strong>${posts.length}</strong> posts</span><button type="button" id="series-fans-open"><strong>${fanCount}</strong> followers</button>${latest?`<span><strong>${unitShort(medium)} ${latest}</strong> latest</span>`:''}</div><button type="button" id="series-progress-open" class="series-progress-row"><span>Your progress</span><strong>${progressValue?unitShort(medium)+' '+progressValue:'Set'}</strong></button><div class="series-tabs" role="tablist" aria-label="Series sections"><button type="button" data-hub-tab="posts" aria-selected="true">Posts</button><button type="button" data-hub-tab="theories" aria-selected="false">Theories</button><button type="button" data-hub-tab="reviews" aria-selected="false">Reviews</button><button type="button" data-hub-tab="threads" aria-selected="false">Threads</button></div><div class="series-grid" data-hub-panel="posts">${postTiles.join('')||emptyTile('No posts yet.')}</div><div class="series-grid" data-hub-panel="theories" hidden>${theoryTiles.join('')||emptyTile('No theories yet. Theories stay separate from reviews.')}</div><div class="series-grid" data-hub-panel="reviews" hidden>${reviewTiles.join('')||emptyTile('No reviews yet.')}</div><div class="series-grid" data-hub-panel="threads" hidden>${threadTiles||emptyTile('The first review opens a thread.')}</div>${poll?`<button type="button" class="series-poll" data-open-series-post="${poll.post_id}">${esc(poll.question)}</button>`:''}</section><div id="series-progress-sheet" class="mini-sheet" hidden><button type="button" id="series-progress-backdrop" class="mini-sheet-backdrop" aria-label="Close progress"></button><form id="series-progress" class="mini-sheet-card"><div class="sheet-handle" aria-hidden="true"></div><h3>Your progress</h3><label>${unit}<input id="series-progress-input" type="number" min="0" ${cap?`max="${cap}"`:''} inputmode="numeric" placeholder="${unit}" value="${esc(progressValue)}"></label><p class="small">${cap?`Up to ${cap}. `:''}Posts past this stay blurred until you tap them.</p><button class="primary" type="submit">Save</button></form></div><div id="series-fans-sheet" class="mini-sheet" hidden><button type="button" id="series-fans-backdrop" class="mini-sheet-backdrop" aria-label="Close followers"></button><div class="mini-sheet-card"><div class="sheet-handle" aria-hidden="true"></div><h3>Followers</h3><div class="series-fan-list">${(fans||[]).map(person=>`<button type="button" data-series-fan="${person.id}"><strong>${esc(person.display_name||person.username)}</strong><span>@${esc(person.username)}</span></button>`).join('')||'<p class="small">'+(fans?'No followers yet.':'Followers show up after the fandom update.')+'</p>'}</div></div></div>`;
+    host.querySelectorAll('[data-hub-tab]').forEach(button=>button.onclick=()=>{host.querySelectorAll('[data-hub-tab]').forEach(item=>item.setAttribute('aria-selected',String(item===button)));host.querySelectorAll('[data-hub-panel]').forEach(panel=>{panel.hidden=panel.dataset.hubPanel!==button.dataset.hubTab;});});
+    const openMini=id=>{const node=$('#'+id);if(node)node.hidden=false;};
+    const closeMini=id=>{const node=$('#'+id);if(node)node.hidden=true;};
+    $('#series-progress-open').onclick=()=>{if(!uid()){requireProfile();return;}openMini('series-progress-sheet');};
+    $('#series-progress-backdrop').onclick=()=>closeMini('series-progress-sheet');
+    $('#series-fans-open').onclick=()=>openMini('series-fans-sheet');
+    $('#series-fans-backdrop').onclick=()=>closeMini('series-fans-sheet');
     $('#series-follow').onclick=async()=>{
       if(!requireProfile())return;
       $('#series-follow').disabled=true;
@@ -303,7 +330,9 @@ export function createFandom({db,$,esc,result,toast,fail,guarded,requireProfile,
       event.preventDefault();
       if(!requireProfile())return;
       const value=Number($('#series-progress-input').value);
+      const limit=Number($('#series-progress-input').max);
       if(!Number.isFinite(value)||value<0){toast('Enter how far you are.');return;}
+      if(limit&&value>limit){toast('This series is listed at '+limit+'.');return;}
       try{
         const saved=await db.rpc('set_series_progress',{p_series:title,p_medium:medium,p_progress:value});
         if(saved.error){
@@ -326,14 +355,9 @@ export function createFandom({db,$,esc,result,toast,fail,guarded,requireProfile,
       else if(found.cover&&cover)cover.src=found.cover;
       const jp=found.japanese&&found.japanese!==title?found.japanese:'';
       if(jp&&!host.querySelector('.series-jp'))host.querySelector('.series-hero-copy h2')?.insertAdjacentHTML('afterend','<p class="series-jp" lang="ja">'+esc(jp)+'</p>');
-      const length=medium==='manga'?found.chapters:found.episodes;
-      const tracker=host.querySelector('.series-tracker');
-      if(tracker){
-        const discussed=latest?unitShort(medium)+' '+latest:'—';
-        const known=length?' · '+length+' '+unitWord(medium,Number(length)):'';
-        const score=tracker.textContent.includes('avg')?tracker.textContent.slice(tracker.textContent.indexOf('· avg')):'';
-        tracker.textContent='Latest discussed '+discussed+known+(score?' '+score:'');
-      }
+      const count=Number(medium==='manga'?found.chapters:found.episodes);
+      const input=$('#series-progress-input');
+      if(input&&count>0){input.max=String(count);const note=input.closest('form')?.querySelector('.small');if(note)note.textContent='Up to '+count+'. Posts past this stay blurred until you tap them.';}
     }).catch(()=>{});
   }
 
