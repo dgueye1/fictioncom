@@ -102,7 +102,8 @@ body.active{background:var(--bg)!important;color:var(--text)!important}
 .skeleton-tile,.series-chip.skeleton-line{background:linear-gradient(90deg,#1a1a1a,#2e2e2e 45%,#1a1a1a);background-size:200% 100%;animation:shimmer 1.2s linear infinite}
 .skeleton-line{display:block;height:12px;width:72%;margin-top:6px;border-radius:6px;background:#2a2a2a}
 .skeleton-line.short{width:46%;height:10px}
-.people-card .avatar.skeleton-tile{width:78px;height:78px;border-radius:50%}
+.people-card .avatar.skeleton-tile,.rail .suggest-row .avatar.skeleton-tile{width:78px;height:78px;border-radius:50%;flex:none}
+.rail .suggest-row .avatar.skeleton-tile{width:44px;height:44px}
 .series-chip.skeleton-line{width:128px;height:36px;padding:0;border-color:transparent}
 html[data-theme="light"] .skeleton-tile,html[data-theme="light"] .series-chip.skeleton-line{background:linear-gradient(90deg,#ececec,#f6f6f6 45%,#ececec)}
 html[data-theme="light"] .skeleton-line{background:#e4e4e4}
