@@ -1,9 +1,15 @@
 export function createBilling({db,$,modal,esc,toast,getUser,auth,refresh}){
  let state={enabled:false,access:true},config={ready:false};
  async function status(){
-  const response=await fetch('/api/billing/config');
-  if(response.status===404&&!state.enabled){state={enabled:false,access:true};config={ready:false};return state;}
-  if(!response.ok)throw Error('Membership status is unavailable. Please try again.');config=await response.json();
+  let response;
+  try{response=await fetch('/api/billing/config');}catch{state={enabled:false,access:true};config={ready:false};return state;}
+  let body=null;
+  try{body=await response.json();}catch{body=null;}
+  if(!response.ok){
+   if(body?.enabled===true)throw Error('Membership status is unavailable. Please try again.');
+   state={enabled:false,access:true};config={ready:false};return state;
+  }
+  config=body||{};
   if(!config.enabled){state={enabled:false,access:true};return state;}
   const r=await db.rpc('membership_status');if(r.error)throw Error('Membership status is unavailable. Please try again.');state=r.data;return state;
  }
