@@ -49,9 +49,9 @@ a{color:inherit}
 .skip-link:focus{left:8px}
 
 .app-shell{margin-left:244px;min-height:100dvh}
-.ig-nav{
-  position:fixed;top:0;bottom:0;left:0;width:244px;z-index:30;
-  display:flex;flex-direction:column;gap:8px;
+aside.ig-nav{
+  position:fixed;top:0;right:auto;bottom:0;left:0;width:244px;height:100dvh;min-height:100dvh;max-height:100dvh;
+  z-index:30;display:flex;flex-direction:column;gap:8px;overflow:auto;
   padding:20px 12px 16px;background:var(--bg);border-right:1px solid var(--line);
 }
 .wordmark{font-family:"Grand Hotel",cursive;font-weight:400;font-size:34px;letter-spacing:0;line-height:1;padding:8px 12px 18px}
@@ -93,11 +93,20 @@ main{min-width:0;width:100%}
 .section-heading{margin:8px 0 12px}
 .section-heading h1{font-size:20px;font-weight:700}
 .eyebrow{display:none}
-body[data-screen="feed"] .section-heading,body[data-screen="explore"] .section-heading,body[data-screen="messages"] .section-heading,body[data-screen="messages"] .site-search{display:none}
+body[data-screen="feed"] .section-heading,body[data-screen="explore"] .section-heading,body[data-screen="messages"] .section-heading,body[data-screen="messages"] .site-search,body[data-screen="feed"] .site-search,body[data-screen="theory"] .site-search,body[data-screen="chapters"] .site-search,body[data-screen="episodes"] .site-search{display:none}
 body[data-screen="messages"] .layout{display:block!important;max-width:1100px}
 body[data-screen="messages"] .rail{display:none!important}
 body.active{background:var(--bg)!important;color:var(--text)!important}
 .create-row{display:none!important}
+.story-ring .guest-avatar{display:grid;place-items:center;color:#d0d0d0;background:#2a2a2a}
+.skeleton-tile,.series-chip.skeleton-line{background:linear-gradient(90deg,#1a1a1a,#2e2e2e 45%,#1a1a1a);background-size:200% 100%;animation:shimmer 1.2s linear infinite}
+.skeleton-line{display:block;height:12px;width:72%;margin-top:6px;border-radius:6px;background:#2a2a2a}
+.skeleton-line.short{width:46%;height:10px}
+.people-card .avatar.skeleton-tile{width:78px;height:78px;border-radius:50%}
+.series-chip.skeleton-line{width:128px;height:36px;padding:0;border-color:transparent}
+html[data-theme="light"] .skeleton-tile,html[data-theme="light"] .series-chip.skeleton-line{background:linear-gradient(90deg,#ececec,#f6f6f6 45%,#ececec)}
+html[data-theme="light"] .skeleton-line{background:#e4e4e4}
+html[data-theme="light"] .story-ring .guest-avatar{background:#efefef;color:#737373}
 
 .public-footer{
   max-width:470px;margin:8px auto 0;padding:18px 16px 28px;
@@ -116,7 +125,7 @@ body.active{background:var(--bg)!important;color:var(--text)!important}
 
 @media(max-width:900px){
   .app-shell{margin-left:76px}
-  .ig-nav{width:76px;padding:16px 8px}
+  .ig-nav,aside.ig-nav{width:76px;padding:16px 8px}
   .ig-nav .wordmark{font-size:0;padding:8px 0 16px;width:44px;height:44px}
   .ig-nav .wordmark::before{content:"F";font-size:32px}
   .nav-item span:not(.ico):not(.chat-unread-badge):not(.notification-count),
@@ -128,7 +137,7 @@ body.active{background:var(--bg)!important;color:var(--text)!important}
 
 @media(max-width:760px){
   .app-shell{margin-left:0}
-  .ig-nav{display:none}
+  .ig-nav,aside.ig-nav{display:none}
   .topbar{
     display:flex;position:sticky;top:0;z-index:28;height:52px;padding:0 12px;
     align-items:center;justify-content:space-between;background:var(--bg);border-bottom:1px solid var(--line);
