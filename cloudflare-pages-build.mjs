@@ -4,4 +4,5 @@ import {readFile,writeFile} from 'node:fs/promises';
 await writeFile(new URL('./wrangler.jsonc',import.meta.url),JSON.stringify({name:'fictioncom',pages_build_output_dir:'./cloudflare-public',compatibility_date:'2026-10-02',compatibility_flags:['nodejs_compat']}));
 const worker=await readFile(new URL('./cloudflare-worker.mjs',import.meta.url),'utf8');
 await writeFile(new URL('./cloudflare-pages-entry.mjs',import.meta.url),worker);
-await writeFile(new URL('./cloudflare-public/_routes.json',import.meta.url),JSON.stringify({version:1,include:['/api/*','/healthz','/p/*','/u/*','/series/*','/explore','/explore/','/chat','/chat/','/feed','/feed/','/theories','/theories/','/chapters','/chapters/','/episodes','/episodes/'],exclude:[]}));
+// Include every path, including /, so fictioncom.pages.dev can 301 before Pages serves a static file.
+await writeFile(new URL('./cloudflare-public/_routes.json',import.meta.url),JSON.stringify({version:1,include:['/*'],exclude:[]}));
