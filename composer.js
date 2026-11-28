@@ -119,7 +119,7 @@ export function createComposer({$,esc,toast,modal,close,guarded,requireProfile,c
     };
     channel.onmessage=onChannel;legacy.onmessage=onChannel;
     field('body').addEventListener('input',()=>{const message={type:'body',body:field('body').value};channel.postMessage(message);legacy.postMessage(message);});
-    field('large-editor').href='write.html#'+draftId;
+    field('large-editor').href='/write.html#'+draftId;
     $('#modal').addEventListener('close',()=>{clearTimeout(timer);if(!published)persist();previewUrls.forEach(URL.revokeObjectURL);const message={type:'closed'};channel.postMessage(message);legacy.postMessage(message);channel.close();legacy.close();},{once:true});
     form.onsubmit=guarded(async()=>{
       const selectedKind=kindValue();
